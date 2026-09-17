@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 8 章 · 查找与替换 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch08" data-ch="ch08">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 08 · 进阶篇 中</div>
+        <h1>查找与替换:单文件内的批量重构</h1>
+        <div class="ch-meta-line">预计阅读 35 分钟(含练习约 1.5 小时)· 前置:第 2、5、7 章 · 本章演示 7 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>把 <kbd>/</kbd> <kbd>?</kbd> <kbd>n</kbd> <kbd>N</kbd> 用成<strong>光标移动</strong>:查找不是弹窗,是跳跃</li>
+          <li>掌握 <kbd>*</kbd> <kbd>#</kbd>:光标下的词一键全文件点名,并串起 <kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd> 的重命名流水线</li>
+          <li>解剖 <code>:s</code> 命令:<strong>range + s + 模式 + 替换 + 标志</strong>五段式,<kbd>g</kbd> <kbd>c</kbd> <kbd>i</kbd> <kbd>e</kbd> 四面旗帜</li>
+          <li>学会<strong>确认模式</strong>(<kbd>y</kbd> <kbd>n</kbd> <kbd>a</kbd> <kbd>q</kbd> <kbd>l</kbd>)与<strong>区域替换</strong>(选区 + <code>:'&lt;,'&gt;s</code>)</li>
+          <li>入门 <code>:g</code> / <code>:v</code>:按内容挑行执行任意命令,<code>:g/pattern/d</code> 一条命令删一群行</li>
+          <li>建立「<strong>文本替换 vs IDE 语义重命名(F2)</strong>」的安全边界意识</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 查找是移动,替换是批量</h2>
+        <p>先摆正两个心智模型。<strong>查找是移动</strong>:按 <kbd>/</kbd> 输入词回车,光标跳到下一个匹配 —— 本质上它和 <kbd>w</kbd>、<kbd>f</kbd><kbd>;</kbd> 一样,是「去某个地方」的命令,只是目的地由内容定义。第 2、3 章的移动管「形状上的位置」(词首、行尾、配对括号),查找管「内容上的位置」。<strong>替换是批量动词</strong>:<code>:s</code> 系列命令把「改」这件事从一次一处,升级到一行、一个区域、整个文件 —— 它是第 5 章动词的「批量发货」通道。</p>
+        <p>本章的地图很简单:先学「找」(<kbd>/</kbd> 与 <kbd>*</kbd>),再学「换」(<code>:s</code> 与标志),然后把两者缝起来(<kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd> 工作流、<code>:g</code> 命令),最后划清它与 IDE 原生查找替换(F2 重命名)的边界。一个提醒先行:<strong>本章所有操作都只动当前文件</strong> —— 跨文件的事交给 IDE 的全局搜索替换或重构工具,那是第 12 章的领地。</p>
+        <p>先用一个真实任务预演全章:函数里有个变量 <code>cnt</code> 要改名 <code>count</code>,它出现 8 次,其中 1 次在注释里。你要做的判断依次是:①要不要动注释?要 —— 一起换;不要 —— 逐处跳过。②形式统一吗?都是小写、整词 —— <kbd>*</kbd> 巡一圈确认。③换法:<kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd> 手动 8 处(顺眼),或 <code>:%s/cnt/count/gc</code> 确认模式(带保险)。你看,「找」提供情报,「换」执行决心 —— 本章每一节都在给这两个动作添加装备。</p>
+
+        <h2>2. / 与 n/N:搜索即跳转</h2>
+        <p><kbd>/</kbd> 打开查找命令行(状态栏),输入词、回车,光标落到下一个匹配处。之后 <kbd>n</kbd>(next)跳下一个、<kbd>N</kbd> 跳上一个,到文件尾会绕回文件头 —— 匹配构成一个环。<kbd>?</kbd> 是反向的 <kbd>/</kbd>(从当前往上找),日常使用率不到一成,知道即可:</p>
+
+        <div class="demo-slot" data-demo="ch08-01-slash-n"></div>
+
+        <p>三个让查找好用一倍的配置项(写在 IDE 备注里的设置里):<strong>增量查找</strong>(<code>incsearch</code>,边打边高亮、边跳)<strong>、高亮所有匹配</strong>(<code>hlsearch</code>,全文匹配常亮)。<code>hlsearch</code> 开了以后会带来一个小烦恼:换完事情高亮还挂着 —— <code>:noh</code>(no highlight)临时关掉本次高亮,值得绑到一个快捷键上。还有两个易忘的点:①查找词是<strong>正则</strong> —— <code>.</code> 是「任意字符」不是句点,要找字面 <code>a.b</code> 得写 <code>a\.b</code>(§9 陷阱展开);②大小写默认敏感,<code>Foo</code> 查不到 <code>foo</code>,想不敏感在模式后加 <code>\c</code>。</p>
+        <p>一个组合技:<strong>查找后的移动命令全部复用</strong> —— 查到函数名,紧接着 <kbd>%</kbd> 看配对括号、<kbd>n</kbd> 巡回所有出现点。这就是「查找是移动」的完整含义:它跳完之后,你仍在普通模式里,手里所有武器都还在。</p>
+        <p>两个进阶小件:①查找词有<strong>历史</strong> —— 按 <kbd>/</kbd> 后别打字,直接按 <kbd>↑</kbd>/<kbd>↓</kbd> 翻最近用过的查找词,改两个字符就能复用;②<code>:noh</code> 之外,很多人把 <kbd>Esc</kbd> 之外的某个键映射成 <code>:noh&lt;Cr&gt;</code>(配置见第 12 章),高亮烦恼一劳永逸。另外注意 <kbd>/</kbd> 与第 3 章导航工具的分工:查找管「按内容定位」,书签与跳转表管「按位置回访」—— 找到后的位置会进跳转表(<kbd>Ctrl</kbd>+<kbd>o</kbd> 能跳回查找前的老位置),两套体系是缝合好的,不是割裂的。</p>
+
+        <h2>3. * 与 #:光标下的词,全文件点名</h2>
+        <p>高频中的高频:光标停在一个变量名上,想知道<strong>它都在哪出现</strong>。传统做法是 <kbd>/</kbd> + 手敲这个词 + 回车 —— 但词就在光标下,为什么要敲?<kbd>*</kbd>(shift+8)把<strong>光标下的词</strong>设为查找词并直接跳到下一处;<kbd>#</kbd> 反向跳。更妙的是 <kbd>*</kbd> 默认<strong>整词匹配</strong>:光标在 <code>total</code> 上,查的是 <code>\&lt;total\&gt;</code>,不会命中 <code>totalPrice</code> 里的片段 —— 这是手敲 <code>/total</code> 没有的待遇。</p>
+
+        <div class="demo-slot" data-demo="ch08-02-star-dot"></div>
+
+        <p>这个演示值得反复看,它是 Vim 最著名的流水线之一:<strong><kbd>*</kbd> 定位 → <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 换第一处 → <kbd>n</kbd> 跳下一处 → <kbd>.</kbd> 重复换</strong>。n 和 . 一个负责「到下一处」、一个负责「再改一遍」,交替敲击如击鼓。它与 <code>:%s//gc</code>(§6)是同一任务的两种解法:n + . 手感更好、顺带看语境;:%s 更快、适合无脑批量。<kbd>g</kbd><kbd>*</kbd> 补充一句:去掉整词限定,匹配词内片段(<code>total</code> 命中 <code>totalPrice</code>)—— 改命名前先 <kbd>g</kbd><kbd>*</kbd> 巡一遍,能看清这个词被哪些兄弟借用了。</p>
+
+        <h2>4. :s 的解剖图:五段式与四面旗帜</h2>
+        <p>替换命令的完整形状:<code>[range]s/模式/替换/[标志]</code>。五段拆开看:<strong>range</strong> 在哪换(§5)、<strong>s</strong> 是 substitute、<strong>模式</strong> 找什么(正则)、<strong>替换</strong> 换成什么、<strong>标志</strong> 怎么换。先看标志缺省时的行为 —— 这是全章第一大翻车点:</p>
+
+        <div class="demo-slot" data-demo="ch08-03-s-inline"></div>
+
+        <p>看清了吗:<strong>不带 <kbd>g</kbd>,一行只换第一处</strong>。「每行多处必带 g」请刻进肌肉。四面旗帜一览:</p>
+        <table class="ktable">
+          <thead><tr><th>标志</th><th>名字</th><th>作用</th><th>什么时候加</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>g</kbd></td><td>global</td><td>一行内的匹配<strong>处处换</strong></td><td>默认都加 —— 除非真想只换每行第一处</td></tr>
+            <tr><td><kbd>c</kbd></td><td>confirm</td><td>每处动手前<strong>确认</strong>(§6)</td><td>改动有语境风险、想逐处过目</td></tr>
+            <tr><td><kbd>i</kbd></td><td>ignorecase</td><td>匹配<strong>忽略大小写</strong></td><td>改大小写不一致的旧代码(<code>Foo</code>/<code>foo</code>)</td></tr>
+            <tr><td><kbd>e</kbd></td><td>silent</td><td>找不到也不报错</td><td>写进脚本/宏里不想被打断时(第 10 章)</td></tr>
+          </tbody>
+        </table>
+        <p>替换段还有一个必会语法:<strong><code>&amp;</code> 代表「匹配到的原文」</strong>。<code>:s/let \(\w\+\)/const \1/</code> 里 <code>\1</code> 是第一个括号组 —— 给变量统一补前缀、给字符串统一加引号这类「保留原文再加料」的替换全靠它。举例拆开看:<code>:s/\(\w\+\) = \(.*\);/\2 = \1;/</code> 把 <code>a = 1;</code> 换成 <code>1 = a;</code> —— 括号组把两边各自「捕获」,替换段里对调引用,一条命令完成「所有赋值语句左右互换」这种手工要命的活。正则组语法(<code>\(...\)</code> 与 <code>\1</code>)先混个脸熟,第 13 章实战会真刀真枪用。</p>
+
+        <h2>5. range 全家:在哪换,一句话说清</h2>
+        <p>range 决定 <code>:s</code> 的施工范围,写法是 Vim 的「行寻址」语法 —— 不止替换用,任何 <code>:</code> 命令都用:</p>
+        <table class="ktable">
+          <thead><tr><th>写法</th><th>范围</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td><i>(缺省)</i></td><td>当前行</td><td>就在这行修一下</td></tr>
+            <tr><td><code>%</code></td><td>全文件(= <code>1,$</code>)</td><td>批量重构的主场:<code>:%s/old/new/g</code></td></tr>
+            <tr><td><code>5,12</code></td><td>第 5 到 12 行</td><td>改动恰好在一个已知区间</td></tr>
+            <tr><td><code>.,$</code></td><td>当前行到文件尾</td><td>「从这里往下都换」</td></tr>
+            <tr><td><code>'&lt;,'&gt;</code></td><td><strong>可视选区</strong></td><td>选中后按 <kbd>:</kbd> 自动填好 —— 区域替换</td></tr>
+          </tbody>
+        </table>
+
+        <div class="demo-slot" data-demo="ch08-05-visual-range"></div>
+
+        <p>区域替换是被低估的利器:同一个词在文件里出现十次,只有选区里的三处要改 —— <kbd>V</kbd>/<kbd>v</kbd> 圈地、<kbd>:</kbd> 自动带出 <code>'&lt;,'&gt;</code> 前缀、补上 <code>s/old/new/g</code> 回车,选区外毫发无伤。这比 <code>:5,12s</code> 数行号舒服得多 —— 范围是「圈」出来的不是「数」出来的,眼睛确认过再动手。第 7 章可视模式的动词菜单里留的那行「选中后 <kbd>:</kbd>」,兑现了。</p>
+        <p>range 写法还能复合微调,两个够用一生的例子:①<code>'&lt;,'&gt;</code> 出来后想多含一行,把前缀改成 <code>'&lt;,'&gt;+1s/…</code>(相对偏移);②当前行往下三行 <code>,+3s/…</code>。「改哪几行」在 Vim 里永远是可精确表达的,精确到行、到选区、到「从这里到文件尾」—— 想明白这一点,就不会再出现「替换完发现多改了两行,手忙脚乱按 u」的名场面。</p>
+
+        <h2>6. 确认模式 gc:眼皮底下的替换</h2>
+        <p><code>:%s/old/new/gc</code> 的 <kbd>c</kbd> 让替换从「批量开火」变成「逐处审批」:每处匹配,光标停上去问你换不换。五个应答键:</p>
+
+        <div class="demo-slot" data-demo="ch08-04-s-confirm"></div>
+
+        <table class="ktable">
+          <thead><tr><th>键</th><th>意思</th><th>按下去之后</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>y</kbd></td><td>yes,换</td><td>换掉这处,跳到下一处</td></tr>
+            <tr><td><kbd>n</kbd></td><td>no,不换</td><td>跳过这处,到下一处</td></tr>
+            <tr><td><kbd>a</kbd></td><td>all,剩下的全换</td><td>看过几处确认没问题,一键「都依你」</td></tr>
+            <tr><td><kbd>q</kbd></td><td>quit,撤退</td><td>立即停手(已换的不回滚)</td></tr>
+            <tr><td><kbd>l</kbd></td><td>last,换这处就收工</td><td>换掉当前处,然后结束</td></tr>
+          </tbody>
+        </table>
+        <p>什么时候用 c:改动<strong>有语境风险</strong> —— 同名词出现在注释、字符串、别的变量名里,盲换会伤及无辜;或匹配较多但只有部分要改。<kbd>a</kbd> 是节奏键:前三处 y 看明白了,第四处直接 a 收尾 —— 兼顾了安全与速度。注意 <kbd>q</kbd> 不回滚已换的,想全撤销用 <kbd>u</kbd>(一条 <code>:s</code> 是一个撤销单元)。</p>
+        <p>三种「部分替换」路线的取舍值得横向看一遍:①<kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd>:每处停顿、逐处判断,顺带看清上下文,适合改动少而精;②<code>:s//gc</code> 确认模式:vim 替你排队,光标自动跳到每处匹配,你只按 y/n —— 适合匹配多但要过目;③裸 <code>:%s</code>:全信任批量,适合你已用 <kbd>*</kbd> 巡视过、确认所有匹配都是同类。三档「信任度」,按你对这份代码的把握选 —— 这也是为什么查找要放在替换前面学:先侦查,后开火。</p>
+
+        <h2>7. 重复的艺术:& 与替换历史</h2>
+        <p>替换之后经常想「把同样的替换在别处再放一遍」。普通模式里的 <kbd>&amp;</kbd>(shift+7)= 在<strong>当前行</strong>重复上一次 <code>:s</code>(标志不带回,想带 g 用 <code>:g&amp;</code> 或 <code>:&amp;&amp;</code>)。配上行移动,就是逐行审批式替换:</p>
+
+        <div class="demo-slot" data-demo="ch08-07-amp-repeat"></div>
+
+        <p><kbd>j</kbd> <kbd>&amp;</kbd> <kbd>j</kbd> <kbd>&amp;</kbd> 的节奏与 §3 的 n + . 异曲同工:一个管「到下一行」,一个管「再放一遍」。三个补充:①命令行里 <kbd>↑</kbd>/<kbd>↓</kbd> 翻<strong>命令历史</strong> —— 上次的 <code>:%s/...</code> 可以翻出来改两个字符再用;②分隔符不必是 <code>/</code>:<code>:s#old/path#new/path#</code> 用 <code>#</code>,替换文本里带斜杠的路径不用转义;③<code>:~</code> 重复上一次替换、沿用上次的模式 —— 用得少,见到认得即可。</p>
+
+        <h2>8. :g 与 :v:按内容挑行,执行任意命令</h2>
+        <p><code>:g</code>(global)是本章的深水区,也是 vim 最强大的命令之一。语法:<code>:g/模式/命令</code> —— 找出所有匹配的行,<strong>对每一行执行</strong>后面的命令。最经典的形态就是删行:</p>
+
+        <div class="demo-slot" data-demo="ch08-06-global-delete"></div>
+
+        <p><code>:g/console/d</code> 删掉所有调试日志行、<code>:g/^$/d</code> 删空行、<code>:g/^\s*\/\//d</code> 删注释行 —— 「一类行整批消失」的需求它包圆。<code>:v</code>(invert)是反选:对<strong>不匹配</strong>的行执行命令,<code>:v/^#/d</code> = 删掉所有不以 <code>#</code> 开头的行(只留注释)。命令段不限于 <kbd>d</kbd>:<code>:g/TODO/normal A(待办)</code> 对每个 TODO 行执行普通模式命令(normal,第 10 章展开)。两个工程事实:一条 <code>:g</code> 是<strong>一个撤销单元</strong>(一次 <kbd>u</kbd> 整条回滚,演示里演了);<code>:g</code> 匹配的也是正则 —— <code>^</code> 行首 <code>$</code> 行尾是它的常用拼图。</p>
+        <p>日常最顺手的几条 <code>:g</code> 存货,按需取用:删空行 <code>:g/^$/d</code>、删纯空格行 <code>:g/^\s*$/d</code>、删注释行 <code>:g/^\s*\/\//d</code>(js 系)、删含某词的行 <code>:g/word/d</code>、把匹配行搬到文件尾 <code>:g/pattern/m$</code>(m 是 move,<code>:g</code> 家族里仅次于 d 的常用命令)、只保留匹配行 <code>:v/pattern/d</code>。这些命令的共性是「以行为单位做筛选」—— 当你的意图能描述成「某类行如何如何」时,先想 <code>:g</code>,再想正则,最后才考虑肉眼逐行。</p>
+
+        <h2>9. 意图→工具决策表 + 安全边界</h2>
+        <p>本章加上 IDE,你手里有一排查找替换工具。按意图选:</p>
+        <table class="ktable">
+          <thead><tr><th>意图</th><th>首选</th><th>理由</th></tr></thead>
+          <tbody>
+            <tr><td>看一个词都在哪出现、挨个跳过去</td><td><kbd>*</kbd> + <kbd>n</kbd></td><td>零输入,整词匹配</td></tr>
+            <tr><td>去某个内容的位置(一次性)</td><td><kbd>/</kbd> 词 <kbd>Enter</kbd></td><td>任意正则,增量高亮</td></tr>
+            <tr><td>换掉本行/选区/全文件的一段文本</td><td><code>:s</code> 家族</td><td>范围 + 标志精确控制</td></tr>
+            <tr><td>多处出现、部分要改部分不要</td><td><code>:s//gc</code> 或 <kbd>n</kbd>+<kbd>.</kbd></td><td>逐处过目,人为把关</td></tr>
+            <tr><td>一类行整批删除/加工</td><td><code>:g/模式/d</code></td><td>按内容挑行,一条命令一群行</td></tr>
+            <tr><td><strong>真正的重命名(变量/函数/类)</strong></td><td><strong>IDE 的 Rename(<kbd>F2</kbd>/<kbd>Shift</kbd>+<kbd>F6</kbd>)</strong></td><td>语义级:跨文件、懂作用域、不误伤注释字符串</td></tr>
+          </tbody>
+        </table>
+        <p>最后一行是安全边界,单独强调:<code>:s</code> 是<strong>文本替换</strong>,它分不清「代码里的引用」和「注释里恰好一样的词」;IDE 的 Rename 是<strong>语义替换</strong>,按作用域解析、自动跨文件、还会提示重名冲突。重命名一个局部变量,多数时候 :%s 没问题;但凡它是个导出函数、公共类 —— 请用 Rename,一处不漏还不动注释。反过来,Rename 干不了的活也很多:改字符串内容、改注释措辞、改日志格式 —— 这些「非语义」的文本变换正是 <code>:s</code> 的主场。实践派的折中流程:先 <kbd>*</kbd> 巡一遍看所有出现点的语境 → 数量少就 n + . 手动 → 数量多且全部同类就 :%s → 拿不准语义就 F2。三个工具不是竞争关系,是按「改动性质」分工的同事。</p>
+
+        <h2>10. 每日训练计划(30 分钟 × 3 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1–2,读 §1–§3;IDE 里开好 incsearch/hlsearch;靶场 <kbd>*</kbd> 巡游 10 个词</td><td>* 与 n 不假思索</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1 + 练习 2 前半</td><td>n + . 流水线成型</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 3–5,读 §4–§5;把 :s 五段式抄进便签</td><td>说出 % 与 '<,'> 的含义</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 2 后半 + 练习 3</td><td>g 标志不再漏</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>重放演示 6–7,读 §6–§9;确认模式五键表背一遍</td><td>y/n/a/q/l 秒答</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:盲测毕业考</td><td>10 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>查找是移动</strong>:<kbd>/</kbd> 词 <kbd>Enter</kbd> 跳过去,<kbd>n</kbd>/<kbd>N</kbd> 环形巡游;<kbd>*</kbd> 零输入点名光标词 —— <kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd> 是重命名的鼓点;</li>
+          <li><strong>:s 五段式、一行多处必带 g</strong>:<code>[range]s/模式/替换/[标志]</code>;选区 <code>'&lt;,'&gt;</code> 圈着换,确认 <kbd>c</kbd> 逐处审批(<kbd>y n a q l</kbd>);</li>
+          <li><strong>:g 按内容挑行</strong>:<code>:g/console/d</code>、<code>:g/^$/d</code> 一条命令一群行;真正的重命名交给 IDE 的 F2 —— 文本替换别越权。</li>
+        </ol>
+        <p>查找替换解决了「批量改」,下一章解决「复制的东西去哪了」:寄存器 —— 48 个抽屉的剪贴板系统,以及与系统剪贴板的打通。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:* 巡游与 / 精投(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场任选文件:①光标放 10 个不同标识符上,各做一遍 <kbd>*</kbd> + 连按 <kbd>n</kbd> 巡完全部出现点,再用 <kbd>N</kbd> 倒着走一遍;②再用 <kbd>/</kbd> 手输词找 5 次,体会增量高亮;③找一个驼峰词,分别 <kbd>*</kbd>(整词)与 <kbd>g</kbd><kbd>*</kbd>(片段)各巡一遍,看清命中范围差异。通过线:三次以内 <kbd>n</kbd> 就能判断「这个词一共出现在几类地方」。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:重命名流水线双打(10 分钟)</summary>
+          <div class="answer">
+            <p>造一个出现 ≥6 次的变量:①上半场用 <kbd>*</kbd> + <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> + <kbd>Esc</kbd> + <kbd>n</kbd> <kbd>.</kbd> 手动换完全部;②<kbd>u</kbd> 撤到起点,下半场用 <code>:%s/旧/新/gc</code> 确认模式再换一遍,前两处 <kbd>y</kbd>,确认安全后 <kbd>a</kbd> 收尾。体会两种节奏的手感差。通过线:两条路都不中断、不误伤。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:range 与标志实验田(10 分钟)</summary>
+          <div class="answer">
+            <p>一段 ≥20 行、含重复词的代码:①当前行 <code>:s/x/y/</code> 与 <code>:s/x/y/g</code> 对比;②<code>%</code> 全换再看 <kbd>u</kbd> 回滚;③<kbd>V</kbd> 选 5 行 → <kbd>:</kbd> → 区域替换,验证选区外无伤;④<code>.,$s/x/y/g</code> 从光标换到尾;⑤故意写 <code>:s/a.b/c/</code> 遇一次正则点号,再用 <code>:s/a\.b/c/</code> 修正。通过线:五个实验的结果都能提前说对。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>10 个任务先说按键再看答案:①跳到下一个 foo ②光标词全文件找 ③反着找上一个匹配 ④只换当前行第一处 foo ⑤全文件把 foo 换 bar 且逐处确认 ⑥确认模式里「剩下全换」按什么 ⑦只在选区里替换 ⑧删掉所有空行 ⑨删掉所有含 TODO 的行 ⑩把上一条 :s 在当前行再来一遍。答案:/foo Enter / * / N / :s/foo/bar/ / :%s/foo/bar/gc / a / 选中后 :'<,'>s/foo/bar/g / :g/^$/d / :g/TODO/d / &。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 :%s 不带 g,以为全换了</span>
+          <code>:%s/foo/bar/</code> 只换<strong>每一行的第一处</strong> —— 行内第二处开始的 foo 全都安然无恙,而你看着终端滚过的输出以为大功告成。自查口诀:「一行多处必带 g」。反过来,当你<strong>真想</strong>只动每行第一处(比如给每行首个逗号后加内容)时,不带 g 恰好是正解 —— 两种意图都想清楚再敲。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 正则元字符没转义</span>
+          模式段是正则:<code>.</code> 匹配任意字符、<code>*</code> 是量词、<code>[ ] ^ $</code> 都有含义。想按字面匹配 <code>a.b.js</code> 要写 <code>a\.b\.js</code>;嫌转义烦可以整段「降魔」:模式前加 <code>\V</code>(very nomagic)后,除了 <code>\</code> 全按字面算。替换段里 <code>&amp;</code> 和 <code>~</code> 也有特殊含义(代表匹配原文),想按字面用要写 <code>\&amp;</code>。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 确认模式里手滑 a,换过头了</span>
+          <kbd>a</kbd>(all)之后的每一处都不再询问 —— 手一快,注释里、字符串里不该换的也换掉了。两个保险:①<kbd>a</kbd> 之前至少 <kbd>y</kbd> 过两三处、看清匹配的都是同类;②真换坏了别慌,一条 <code>:s</code> 是一个撤销单元,普通模式一个 <kbd>u</kbd> 整条回滚重来。中途想停用 <kbd>q</kbd>(注意它不回滚已换的)。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 替换文本里有 /,命令被截胡</span>
+          <code>:s/const old/const new/path/</code> —— 分隔符是 <code>/</code>,替换文本里的路径把它搅乱了。解法:<strong>分隔符随意换</strong>,<code>:s#const old#const new/path#</code> 用 <code>#</code> 一了百了。这是 vim 命令行的通用设计:<code>:</code> 命令里 <code>s</code> 后跟什么字符,什么字符就是分隔符。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>VSCodeVim 的 <kbd>/</kbd> 用自绘高亮模拟;对应设置 <code>vim.incsearch</code>(默认开)与 <code>vim.hlsearch</code>(建议开,高亮所有匹配)。<code>:noh</code> 可用</li>
+              <li><kbd>*</kbd>/<kbd>#</kbd> VSCodeVim 支持(整词语义一致);<kbd>n</kbd>/<kbd>N</kbd> 会复用 VSCode 的查找高亮,观感与原生一致</li>
+              <li>原生对照组:<kbd>Cmd</kbd>+<kbd>f</kbd> 查找、<kbd>Cmd</kbd>+<kbd>r</kbd> 替换控件(带正则开关)、<kbd>F2</kbd> 语义重命名 —— 三者与 vim 方式并存,按 §9 决策表选用</li>
+              <li>vscode 多光标替换(Cmd-d 后直接打字)是第四条路:散落的相同词各改各的,与 <kbd>*</kbd>+<kbd>.</kbd> 二选一</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>IdeaVim 的 <kbd>/</kbd> 查找接入 IDEA 的高亮;建议 <code>.ideavimrc</code> 里写 <code>set hlsearch incsearch</code>(第 12 章给出推荐配置全文)</li>
+              <li><kbd>*</kbd>/<kbd>#</kbd>/<kbd>n</kbd>/<kbd>N</kbd> IdeaVim 支持;<code>:%s//gc</code> 确认模式同样可用(交互提示由 IdeaVim 自绘)</li>
+              <li>原生对照组:<kbd>Cmd</kbd>+<kbd>f</kbd>/<kbd>Cmd</kbd>+<kbd>r</kbd> 查找替换、<kbd>Shift</kbd>+<kbd>F6</kbd> 语义重命名(Refactor 菜单)—— 重命名公共符号优先它</li>
+              <li>IDEA 的 Find in Files(<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>f</kbd>)管跨文件搜索,vim 的 <code>:s</code> 管当前文件 —— 边界记住「单文件用 vim,跨文件用 IDE」</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>按键 / 命令</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>/</kbd> 词 <kbd>Enter</kbd></td><td>跳到下一个匹配</td><td><kbd>n</kbd> / <kbd>N</kbd></td><td>下一个 / 上一个匹配</td></tr>
+            <tr><td><kbd>*</kbd> / <kbd>#</kbd></td><td>光标词整词查找(反 / 正向)</td><td><kbd>g</kbd><kbd>*</kbd></td><td>光标词片段匹配</td></tr>
+            <tr><td><code>:s/a/b/</code> → <code>…/g</code></td><td>本行第一处 → 行内处处</td><td><code>:%s/a/b/g</code></td><td>全文件替换</td></tr>
+            <tr><td><code>…/gc</code> + <kbd>y n a q l</kbd></td><td>逐处确认的五个应答</td><td><code>:'&lt;,'&gt;s/…</code></td><td>选区内替换(选中按 :)</td></tr>
+            <tr><td><code>:g/pat/d</code> / <code>:v/pat/d</code></td><td>删匹配行 / 删非匹配行</td><td><kbd>&amp;</kbd></td><td>当前行重复上条 :s</td></tr>
+            <tr><td><code>:noh</code></td><td>关掉本次查找高亮</td><td><kbd>F2</kbd> / <kbd>Shift</kbd>+<kbd>F6</kbd></td><td>IDE 语义重命名(安全牌)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:查找是移动(* 零输入点名),替换五段式(一行多处必带 g),按内容挑行用 :g,真重命名交给 F2。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch07.html">← 第 7 章 · 可视化模式与块编辑</a>
+          <a href="ch09.html">第 9 章 · 寄存器与剪贴板 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch08.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

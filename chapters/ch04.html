@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 4 章 · 文本对象 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch04" data-ch="ch04">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 04 · 语法篇 上(全站核心)</div>
+        <h1>文本对象:给「东西」起名字</h1>
+        <div class="ch-meta-line">预计阅读 45 分钟(含练习约 1.5 小时)· 前置:第 1、2 章 · 本章演示 9 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>理解文本对象在编辑语言里的身份:<strong>一类新的名词</strong>,和移动键并列</li>
+          <li>掌握<strong>两条边界</strong>:<kbd>i</kbd>(inside,里面)与 <kbd>a</kbd>(around,周围)</li>
+          <li>记住四族常用对象:<strong>词</strong> <kbd>iw</kbd>/<kbd>aw</kbd>、<strong>括号</strong> <kbd>i(</kbd>/<kbd>a(</kbd>、<strong>引号</strong> <kbd>i"</kbd>/<kbd>a"</kbd>、<strong>标签</strong> <kbd>it</kbd>/<kbd>at</kbd></li>
+          <li>会用 <kbd>ciw</kbd>(改这个词)、<kbd>ci"</kbd>(改字符串内容)、<kbd>ci(</kbd>(改参数列表)这三个高频句子</li>
+          <li>建立关键直觉:<strong>光标只需在对象内部任意位置</strong>,不用先跳到边界上</li>
+          <li>理解嵌套规则:块对象永远作用于<strong>光标所在的最内层</strong></li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 从一个别扭的瞬间说起</h2>
+        <p><a href="ch02.html">第 2 章</a>结尾你学会了 <kbd>d</kbd><kbd>t</kbd><kbd>,</kbd>(删到逗号前)。用几天你会碰到三个新烦恼:</p>
+        <ul>
+          <li>想把 <code>render(header, footer)</code> 里的参数<strong>整个清空</strong>重写 —— <kbd>d</kbd><kbd>t</kbd><kbd>)</kbd> 删不干净,<kbd>d</kbd><kbd>f</kbd><kbd>)</kbd> 又把右括号也误伤;</li>
+          <li>想改 <code>"Ada"</code> 引号里的内容 —— 先 <kbd>f</kbd><kbd>"</kbd> 跳进去、再 <kbd>c</kbd><kbd>$</kbd> 删到引号前?三步还容易失手;</li>
+          <li>删一个词用 <kbd>d</kbd><kbd>w</kbd> 挺好,可光标停在词中间时,它只删<strong>半个词</strong>,剩下的半截更难看。</li>
+        </ul>
+        <p>这些烦恼的共同点:你在用「<strong>移动</strong>」描述范围 —— 从这里、到那里。但大脑里真正想说的是:「作用于<strong>这个东西</strong>」:这个词、这对括号里的东西、这对引号里的东西。鼠标时代的你早就习惯了这个思路:双击选中一个词、点在括号里让 IDE 高亮配对。Vim 给这个思路一个正式的名字 —— <strong>文本对象(text object)</strong>,并且把它做成了<strong>一类新的名词</strong>,任何动词都能用。</p>
+        <p>先看一眼它解决开头三个烦恼的样子:<kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> 删掉括号里全部内容(括号完好)、<kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 清空字符串内容原地重打、<kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 删掉光标所在的整个词(光标在词里随便哪个字母上都行)。三个键,说一句话。本章就把这套「给东西起名字」的词典讲全。</p>
+        <p>值得先想清楚一次思维层面的差别。「移动思维」是<strong>路径式</strong>的:从这里出发、经过哪些词、到哪里停 —— 你在描述一段旅程,光标是旅行者,所以你必须关心它的起点和终点。「对象思维」是<strong>指物式</strong>的:那个词、那对括号、那段引号 —— 你在指认一个东西,至于光标具体站在这个东西的哪个字母上,<strong>无关紧要</strong>。这就是为什么对象能把「光标位置」从方程里消掉:它不问你在哪,只问你在谁的肚子里。练习本章时的自检标准也只有一条:每次按对象键之前,你脑子里出现的是「路线」还是「东西」 —— 前者说明还在用第 2 章的脑子,后者才算是换挡成功。</p>
+
+        <h2>2. 语法:动词 + i/a + 对象</h2>
+        <p>文本对象的构词法只有两段:</p>
+        <p><strong>[动词] <kbd>i</kbd> 或 <kbd>a</kbd> + 对象字符</strong></p>
+        <ul>
+          <li><kbd>i</kbd> = <strong>inside</strong>(里面):只含对象本身,不含边界;<code>i</code>nner 的缩写;</li>
+          <li><kbd>a</kbd> = <strong>around</strong>(周围):含边界,并且<strong>连带一侧的空白</strong>(词对象连尾部空格,块对象连包裹符号本身)。</li>
+        </ul>
+        <p>对象字符目前你能用到的全家族如下,一张表收走:</p>
+        <table class="ktable">
+          <thead><tr><th>对象</th><th>指什么</th><th>对象</th><th>指什么</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>w</kbd> / <kbd>W</kbd></td><td>词 / 大词</td><td><kbd>(</kbd> 或 <kbd>b</kbd></td><td><code>( )</code> 括号块</td></tr>
+            <tr><td><kbd>s</kbd></td><td>句子(英文句号分隔)</td><td><kbd>[</kbd></td><td><code>[ ]</code> 方括号块</td></tr>
+            <tr><td><kbd>p</kbd></td><td>段落(空行分隔)</td><td><kbd>{</kbd> 或 <kbd>B</kbd></td><td><code>{ }</code> 花括号块</td></tr>
+            <tr><td><kbd>"</kbd> <kbd>'</kbd> <kbd>`</kbd></td><td>引号串(三种引号各自)</td><td><kbd>&lt;</kbd> <kbd>&gt;</kbd></td><td><code>&lt; &gt;</code> 尖括号块</td></tr>
+            <tr><td><kbd>t</kbd></td><td>HTML/XML 标签</td><td><kbd>)</kbd> <kbd>]</kbd> <kbd>}</kbd></td><td>同各自开括号(闭括号也能用)</td></tr>
+          </tbody>
+        </table>
+        <p>注意一个重要身份区别:第 2 章的移动键是「<strong>到达</strong>某处」的名词(回答「到哪」),文本对象是「<strong>框住</strong>某段」的名词(回答「哪一段」)。前者把光标送过去,后者原地圈地 —— 所以文本对象<strong>不能单独用来移动</strong>,它天生是给动词当宾语的。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 读法训练:像读中文一样读缩写</span>
+          把 <kbd>d</kbd><kbd>i</kbd><kbd>w</kbd> 读作「删·内·词」,<kbd>c</kbd><kbd>i</kbd><kbd>(</kbd> 读作「改·内·括号」,<kbd>y</kbd><kbd>a</kbd><kbd>"</kbd> 读作「复制·整个·引号串」。读得顺,按得才顺 —— 哑巴 Vim 是学不会的。
+        </div>
+
+        <h2>3. 词对象:iw 与 aw</h2>
+        <p>第一站是最常用的 <kbd>w</kbd>。<kbd>i</kbd><kbd>w</kbd> = 词本身;<kbd>a</kbd><kbd>w</kbd> = 词 + 尾部空格。两者的差异在删除后立刻可见:</p>
+
+        <div class="demo-slot" data-demo="ch04-01-iw-aw"></div>
+
+        <p>看清楚那个细节了么?<kbd>d</kbd><kbd>i</kbd><kbd>w</kbd> 留下了<strong>两个连续空格</strong>(词没了,它两侧的空格都还在),而 <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 把尾部空格一起带走,只剩一个空格,排版干净。记住一个不成文的口味偏好:<strong>在代码行里删词,优先 <kbd>a</kbd><kbd>w</kbd></strong>(不留双空格);<strong>要动"词本身"而保留间隔时用 <kbd>i</kbd><kbd>w</kbd></strong>(比如 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 改名时,两侧空格根本不该动)。</p>
+        <p>再往上配一个动词 <kbd>c</kbd>(change,改 = 删 + 进插入),就是你以后每天要按几十次的组合:</p>
+
+        <div class="demo-slot" data-demo="ch04-02-ciw"></div>
+
+        <table class="ktable">
+          <thead><tr><th>句子</th><th>读法</th><th>什么时候用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>c</kbd><kbd>i</kbd><kbd>w</kbd></td><td>改·内·词</td><td>变量改名 —— <strong>光标在词内任意位置</strong>,不用 <kbd>b</kbd> 回词头</td></tr>
+            <tr><td><kbd>d</kbd><kbd>a</kbd><kbd>w</kbd></td><td>删·整·词</td><td>删掉一个词且不留双空格</td></tr>
+            <tr><td><kbd>y</kbd><kbd>i</kbd><kbd>w</kbd></td><td>复制·内·词</td><td>抓一个词进寄存器(下一章细讲 y)</td></tr>
+            <tr><td><kbd>c</kbd><kbd>a</kbd><kbd>w</kbd></td><td>改·整·词</td><td>少用:会把尾部空格也吞进插入点</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout tip">
+          <span class="co-title">💡 为什么 ciw 比 dw 高明</span>
+          <kbd>d</kbd><kbd>w</kbd> 的射程从<strong>光标处</strong>开始算 —— 光标在词中间就只删半截;<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 的射程是<strong>整个对象</strong> —— 光标在词里哪里都一样。把「光标位置」从方程里消掉,这就是对象对移动的降维打击。
+        </div>
+
+        <h2>4. 括号家族:i( 与 a(</h2>
+        <p>代码里最多的结构就是配对符:<code>( )</code>、<code>{ }</code>、<code>[ ]</code>。对象语法对它们一视同仁 —— 按 <kbd>(</kbd>、<kbd>[</kbd>、<kbd>{</kbd>(或对应的闭括号,效果相同;<kbd>b</kbd>/<kbd>B</kbd> 是 <kbd>(</kbd>/<kbd>{</kbd> 的别名,b = block)。先看最重要的性质:</p>
+
+        <div class="demo-slot" data-demo="ch04-03-parens"></div>
+
+        <p>演示里光标自始至终停在 <code>header</code> 的字母中间 —— 不在括号上,更不在行首。<kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> 照样精准清空括号内容。这条性质值得单独加粗:<strong>块对象要求光标在块内(边界上也行),但不要求在任何特定位置</strong>。对比第 2 章的 <kbd>f</kbd>:你得先「看到」锚点字符再跳过去 —— 对象把这一步完全省了。</p>
+        <p>三种高频用法,配不同的动词:</p>
+        <table class="ktable">
+          <thead><tr><th>句子</th><th>含义</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>d</kbd><kbd>i</kbd><kbd>(</kbd></td><td>清空括号内容,括号保留</td><td>参数不要了,重写;清空调用参数做占位</td></tr>
+            <tr><td><kbd>c</kbd><kbd>i</kbd><kbd>(</kbd></td><td>清空并直接重打</td><td>改参数列表(下一章实战的主力)</td></tr>
+            <tr><td><kbd>d</kbd><kbd>a</kbd><kbd>(</kbd></td><td>连括号一起删</td><td>去掉一层「包裹」:把 <code>f(x)</code> 变 <code>f</code></td></tr>
+            <tr><td><kbd>y</kbd><kbd>i</kbd><kbd>(</kbd></td><td>复制括号内全部内容</td><td>把参数抄到别处(第 9 章寄存器配合)</td></tr>
+          </tbody>
+        </table>
+        <p>花括号同理:<kbd>d</kbd><kbd>i</kbd><kbd>{</kbd> 清空函数体、<kbd>c</kbd><kbd>i</kbd><kbd>{</kbd> 重写函数体、<kbd>y</kbd><kbd>i</kbd><kbd>{</kbd> 复制整个块。嵌套时只有一条规则:</p>
+
+        <div class="demo-slot" data-demo="ch04-05-nested-braces"></div>
+
+        <p><strong>永远取光标所在的最内层</strong>。光标在 <code>y()</code> 上,那是 if 块的地盘;光标挪到 <code>if</code> 这个词上(已经在 if 块外、函数块内),同一个 <kbd>d</kbd><kbd>i</kbd><kbd>{</kbd> 就改判为函数体。想让外层响应?把光标挪出内层再按就是 —— 用 <kbd>j</kbd><kbd>k</kbd> 移动几格就能换目标,这个「换挡」成本低到可以忽略。</p>
+
+        <div class="callout warn">
+          <span class="co-title">⚠️ 光标在块外,对象就装聋</span>
+          括号是配对高亮看得见的,但光标如果停在<strong>括号外面</strong>(比如上一行行尾),<kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> 会直接失败(响一声铃,什么也不删)。这不是 bug:对象只认「光标在谁肚子里」。先 <kbd>j</kbd>/<kbd>w</kbd> 进去,再说话。
+        </div>
+
+        <h2>5. 引号家族:i" 与 a"</h2>
+        <p>三种引号各成一个对象:<kbd>"</kbd>、<kbd>'</kbd>、<kbd>`</kbd>(模板字符串)。改字符串内容是写业务代码的日常 —— 日志文案、错误消息、UI 文案,全是它:</p>
+
+        <div class="demo-slot" data-demo="ch04-04-quotes"></div>
+
+        <p><kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 的体验值得回味:不用 <kbd>f</kbd> 找引号、不用数长度,光标放在引号串里任何一个字符上,三个键,内容清空、引弧保留、光标停在原地等你打字。配合 <kbd>Esc</kbd>,一次文案修改 <strong>4 个动作</strong>封顶。而 <kbd>d</kbd><kbd>a</kbd><kbd>"</kbd> 连引号端走,适合「这个字符串整个不要了」。</p>
+        <p>两条使用规则:①光标必须在<strong>这对引号之间</strong>(引号上也算);②引号必须<strong>同种配对</strong> —— <code>"…'</code> 不算一对。另外注意转义的坑:字符串里的 <code>\"</code> 会被 Vim 正确跳过,但 IDE 的语法解析和 Vim 的朴素匹配偶有出入,极复杂的情况(引号里嵌引号)还是用第 8 章的替换更稳。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 引号对象的隐藏福利</span>
+          光标在引号<strong>外面</strong>(比如刚好停在开引号前一个字符)时 <kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 会失败 —— 这时很多老手会先按 <kbd>f</kbd><kbd>"</kbd> 再 <kbd>c</kbd><kbd>i</kbd><kbd>"</kbd>。其实更快的做法:直接 <kbd>w</kbd> 或 <kbd>l</kbd> 进去一个字符,对象就生效了。记住:对象要的不是「精确位置」,是「在不在屋里」。
+        </div>
+
+        <h2>6. 段落对象:ip 与 ap</h2>
+        <p>「段落」在 Vim 里的定义朴素得可爱:<strong>空行分隔出来的一坨连续文本</strong>。代码文件里,函数与函数之间、配置块与配置块之间恰好都用空行隔开 —— 于是 <kbd>i</kbd><kbd>p</kbd>(inner paragraph)天然对应「这一坨代码」:</p>
+
+        <div class="demo-slot" data-demo="ch04-06-paragraph"></div>
+
+        <p>看到那个容易踩的坑了吗 —— 这里的 <kbd>p</kbd> 是 <strong>p</strong>aragraph(段落对象),不是下一章的粘贴键 <kbd>p</kbd>(paste)。同一个字母,位置决定身份:跟在 <kbd>i</kbd>/<kbd>a</kbd> 后面是对象,单独按是粘贴。读出声就不会混:「删·内·段落」。</p>
+        <table class="ktable">
+          <thead><tr><th>句子</th><th>含义</th><th>什么时候用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>d</kbd><kbd>i</kbd><kbd>p</kbd></td><td>删本段(可能残留一个空行)</td><td>清掉一段注释、一段废弃逻辑</td></tr>
+            <tr><td><kbd>d</kbd><kbd>a</kbd><kbd>p</kbd></td><td>删本段 + 段尾空行</td><td>同上,但要求删完排版干净(更常用)</td></tr>
+            <tr><td><kbd>v</kbd><kbd>i</kbd><kbd>p</kbd></td><td>选中本段</td><td>第 7 章可视化模式预告:对象同样能当选择的名词</td></tr>
+            <tr><td><kbd>y</kbd><kbd>i</kbd><kbd>p</kbd></td><td>复制本段</td><td>把一个代码块整体搬走</td></tr>
+          </tbody>
+        </table>
+        <p>段落对象和 <kbd>i</kbd><kbd>{</kbd> 的分工:函数体有花括号包着,用 <kbd>i</kbd><kbd>{</kbd> 更精确;没有统一包裹符的「一坨」(连续的 import、一段 markdown、一串配置项),用 <kbd>i</kbd><kbd>p</kbd>。<strong>有壳用壳,没壳用段</strong>。</p>
+        <p>段落对象还有一个被低估的用法:<strong>阅读时按 <kbd>]</kbd><kbd>}</kbd> 或大写 <kbd>}</kbd> 跳到下一段</strong>(后者是第 3 章的移动,这里只借个概念)—— 空行分段的代码,一段往往是一个完整的小意图,按段阅读比按行阅读快得多。把「段」当作代码的段落符号,是 <kbd>i</kbd><kbd>p</kbd> 带给你的副产品直觉。写 markdown 的人更会立刻爱上它:一个自然段就是一个对象,<kbd>c</kbd><kbd>i</kbd><kbd>p</kbd> 重写整段,<kbd>d</kbd><kbd>a</kbd><kbd>p</kbd> 删掉整段连空行,再也不用 <kbd>V</kbd> 然后数行。</p>
+
+        <h2>7. 标签对象:it 与 at(前端福音)</h2>
+        <p>写 HTML / JSX / Vue 模板的同学专享:<kbd>t</kbd> = tag。<kbd>i</kbd><kbd>t</kbd> 是标签<strong>里面的内容</strong>(不含开闭标签),<kbd>a</kbd><kbd>t</kbd> 是<strong>整个元素</strong>(含标签):</p>
+
+        <div class="demo-slot" data-demo="ch04-07-tag"></div>
+
+        <p><kbd>c</kbd><kbd>i</kbd><kbd>t</kbd>(change inner tag)可能是前端 Vim 用户按得最爽的键:改标题、改按钮文案、改链接文字,全是它 —— 标签结构毫发无损,内容就地重写。<kbd>d</kbd><kbd>a</kbd><kbd>t</kbd> 则删掉整个元素,相当于 IDE 里「删除标签」的重构,但不用碰菜单。嵌套标签同样遵守「最内层优先」:光标在 <code>&lt;span&gt;</code> 里,<kbd>c</kbd><kbd>i</kbd><kbd>t</kbd> 改的是 span 的内容;想改外层 <code>&lt;div&gt;</code> 的?先把光标挪到 span 外面(div 内)再按。</p>
+
+        <div class="callout warn">
+          <span class="co-title">⚠️ 自闭合标签没有 inner</span>
+          <code>&lt;br/&gt;</code>、<code>&lt;img/&gt;</code> 这类自闭合标签没有内容,<kbd>i</kbd><kbd>t</kbd> 无从谈起;<kbd>a</kbd><kbd>t</kbd> 倒是可以删掉它。另外 Vim 的标签匹配是朴素正则,遇到 JSX 里大小写组件、展开属性写得很长的标签,偶尔会认错边界 —— 常规场景放心用,怪异结构用 <kbd>v</kbd><kbd>a</kbd><kbd>t</kbd> 先看一眼选中范围再决定删不删(第 7 章)。
+        </div>
+
+        <h2>8. 对象不分行:跨行的括号一样罩得住</h2>
+        <p>「一行放不下拆成多行的参数列表」是格式化后的常态。文本对象对此毫无怨言 —— 它按的是<strong>结构</strong>,不是行:</p>
+
+        <div class="demo-slot" data-demo="ch04-08-multiline"></div>
+
+        <p>四行的调用,<kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> 一键清成两行;换成 <kbd>c</kbd><kbd>i</kbd><kbd>(</kbd> 还能直接重写。对比一下没有对象的年月:光标挪到第一个参数、<kbd>d</kbd><kbd>j</kbd><kbd>j</kbd> 或者按三次 <kbd>d</kbd><kbd>d</kbd> 还得防多删 —— 现在你只说「清空括号」,几行是括号自己的事。配合第 3 章会讲的 <kbd>%</kbd>(配对跳转),配对结构在 Vim 里处处是VIP。</p>
+        <p>跨行能力也让对象成了<strong>格式化不友好代码的救星</strong>:IDE 一开自动换行,行级操作(按行数删、按列选)经常失手,但结构不变 —— 括号还是那对括号,字符串还是那个字符串。养成习惯:想动「结构里的东西」,永远先找对象,行数交给机器。</p>
+
+        <h2>9. 名词不变,动词随便换</h2>
+        <p>本章你其实一直在用三个动词(<kbd>d</kbd> 删、<kbd>c</kbd> 改、<kbd>y</kbd> 复制),但注意:我们<strong>从没为某个动词单独学过对象</strong>。词典是一本,菜单随便点:</p>
+
+        <div class="demo-slot" data-demo="ch04-09-verbs"></div>
+
+        <table class="ktable">
+          <thead><tr><th>动词 ↓ / 对象 →</th><th><kbd>iw</kbd></th><th><kbd>i(</kbd></th><th><kbd>i"</kbd></th><th><kbd>it</kbd></th></tr></thead>
+          <tbody>
+            <tr><td><kbd>d</kbd> 删</td><td><kbd>d</kbd><kbd>i</kbd><kbd>w</kbd> 删词</td><td><kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> 清参数</td><td><kbd>d</kbd><kbd>i</kbd><kbd>"</kbd> 清字符串</td><td><kbd>d</kbd><kbd>i</kbd><kbd>t</kbd> 清标签内容</td></tr>
+            <tr><td><kbd>c</kbd> 改</td><td><kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 改词 ⭐</td><td><kbd>c</kbd><kbd>i</kbd><kbd>(</kbd> 重写参数 ⭐</td><td><kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 改文案 ⭐</td><td><kbd>c</kbd><kbd>i</kbd><kbd>t</kbd> 改标签内容 ⭐</td></tr>
+            <tr><td><kbd>y</kbd> 复制</td><td><kbd>y</kbd><kbd>i</kbd><kbd>w</kbd> 抓词</td><td><kbd>y</kbd><kbd>i</kbd><kbd>(</kbd> 抓参数</td><td><kbd>y</kbd><kbd>i</kbd><kbd>"</kbd> 抓字符串</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p>这张 3×4 的矩阵就是 12 条命令,再加 <kbd>a</kbd> 版本直接翻倍 —— 而你要背的只有「两个边界字母 + 五六个对象字符」。<a href="ch05.html">下一章</a>我们把动词全表补齐(还有 <kbd>p</kbd> 粘贴、<kbd>r</kbd> 单换、大小写、缩进……),并把这些零件组装成完整的语法公式。届时你会发现:这一章的词典,一个字都不用重学。</p>
+
+        <h2>10. 每日训练计划(30 分钟 × 3 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1–2,读 §1–§3;靶场里 <kbd>d</kbd><kbd>i</kbd><kbd>w</kbd>/<kbd>d</kbd><kbd>a</kbd><kbd>w</kbd>/<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 各 10 次</td><td>能脱口说出 i 和 a 删完的差别</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1:词敏感训练</td><td>光标故意放词中间,次次删干净</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 3–5,读 §4–§5;括号/引号三件套各 10 次</td><td><kbd>c</kbd><kbd>i</kbd><kbd>(</kbd> 与 <kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 不假思索</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 2 + 练习 3</td><td>嵌套换挡成功 8/10 次</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>重放演示 6–9,读 §6–§9</td><td>能背出四族对象各自的场景</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:盲测毕业考</td><td>9 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>i 是里面,a 是带壳(还多吃一口空白)</strong>:删完留不留「壳」和双空格,选前想一秒;</li>
+          <li><strong>光标进去就行</strong>:词内、括号内、引号内 —— 任意位置,对象自动框住整个结构,嵌套取最内层;</li>
+          <li><strong>词典一本,动词随便点</strong>:d/c/y × iw/i(/i"/it 的矩阵,先把三颗 ⭐(<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd>、<kbd>c</kbd><kbd>i</kbd><kbd>(</kbd>、<kbd>c</kbd><kbd>i</kbd><kbd>"</kbd>)练成本能,其余随用随查。</li>
+        </ol>
+        <p>下一章把动词讲全,组装出完整的语法公式 —— 到那时,你按的每一组键,都是一句完整的中文。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:词敏感训练(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场找 20 行代码,光标<strong>故意</strong>停在标识符的中间字母上,然后:①<kbd>d</kbd><kbd>i</kbd><kbd>w</kbd> 删掉、<kbd>u</kbd> 悔回;②<kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 删掉、观察双空格消失、<kbd>u</kbd> 悔回;③<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 输入 <code>tmp</code>、<kbd>Esc</kbd>、<kbd>u</kbd> 悔回。每个词三连,做 20 组。目标:手指记住「词中间也能整词操作」的安全感。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:括号全家桶 + 嵌套换挡(10 分钟)</summary>
+          <div class="answer">
+            <p>找一个有两层嵌套花括号的函数(或自己造一个),光标放进最内层:<kbd>d</kbd><kbd>i</kbd><kbd>{</kbd> → <kbd>u</kbd>;<kbd>k</kbd> 挪出内层 → 再 <kbd>d</kbd><kbd>i</kbd><kbd>{</kbd>(这次是外层)→ <kbd>u</kbd>。然后对函数调用练 <kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> / <kbd>c</kbd><kbd>i</kbd><kbd>(</kbd>(重打一遍原参数) / <kbd>d</kbd><kbd>a</kbd><kbd>(</kbd>,各 5 次,每次光标换一个奇怪的位置起手。通过线:10 次里 8 次一次到位、不用 <kbd>u</kbd>。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:ci" 文案马拉松(10 分钟)</summary>
+          <div class="answer">
+            <p>找一段有 10 个以上字符串的代码(日志、报错、UI 文案都行),逐个:<strong>不移动光标到引号上</strong>(在字符串内部任意字符即可),<kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> → 随便改两个字 → <kbd>Esc</kbd>。10 个为一组,做完 <kbd>u</kbd> 回滚所有修改。进阶:换成 <kbd>d</kbd><kbd>a</kbd><kbd>"</kbd> 感受「连壳端走」,再 <kbd>u</kbd>。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>准备好纸笔(或让同事出题),对着一屏真实代码,以下 9 个任务<strong>先说按键、再看答案</strong>:①删光标所在的词(不留双空格)②改光标所在的词 ③清空某函数调用的参数 ④重写参数列表 ⑤删掉某字符串内容(留引号)⑥删掉某字符串整体(连引号)⑦改 h2 标签里的文案 ⑧删掉空行隔开的一段注释 ⑨复制括号里的全部参数。9 题对 7 题毕业。答案:<kbd>daw</kbd> / <kbd>ciw</kbd> / <kbd>di(</kbd> / <kbd>ci(</kbd> / <kbd>di"</kbd> / <kbd>da"</kbd> / <kbd>cit</kbd> / <kbd>dap</kbd> / <kbd>yi(</kbd>。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 i 和 a 傻傻分不清</span>
+          删完发现双空格 / 或该留的空格没了 —— 这是没想清楚边界。记一句口诀:「<strong>a 多吃一口</strong>」(around 会把边界和一侧空白一起算上)。代码里删词默认 <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd>,改词一律 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd>,90% 的场景这两条就够了。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 光标在块外按 di( 没反应</span>
+          响铃、不动、以为插件坏了 —— 其实是光标在括号外面。块对象只认「光标在谁肚子里」。先 <kbd>w</kbd>/<kbd>j</kbd> 进去再按。反向的坑:想删外层,光标却还在内层里 —— 挪出去(哪怕一格)再 <kbd>d</kbd><kbd>i</kbd><kbd>{</kbd>。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 中文全角标点不是对象</span>
+          <code>（）</code>、<code>「」</code>、<code>""</code> 这些全角字符 Vim <strong>不认</strong> —— <kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> 找的是半角 <code>()</code>。写中文文案、改全角引号时,对象会失灵,这是少数该回到可视化模式或替换命令的场景(第 7、8 章)。代码本体几乎全是半角,日常不受影响,但要有这个预期。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 在 JSX/复杂标签上指望它万无一失</span>
+          <kbd>i</kbd><kbd>t</kbd> 的匹配是朴素的:遇到跨多行、属性里带 <code>&gt;</code>、泛型 <code>&lt;T&gt;</code> 混在组件里的场景,边界偶尔认错。防御性习惯:先 <kbd>v</kbd><kbd>a</kbd><kbd>t</kbd>(第 7 章)看高亮范围,确认后再下手;拿不准就退回 <kbd>d</kbd><kbd>i</kbd><kbd>{</kbd> 或行级操作。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>文本对象<strong>原生全支持</strong>,包括 <kbd>i</kbd><kbd>t</kbd>/<kbd>a</kbd><kbd>t</kbd> 标签对象(JSX 亦可一试)</li>
+              <li>配对高亮(<code>editor.matchBrackets</code>,默认开)是肉眼找块的好帮手 —— 但记住按对象时<strong>不需要</strong>先看高亮</li>
+              <li>想给对象加「改包围符」能力(如把 <code>"</code> 换 <code>'</code>),装 Vim 插件的 surround 扩展即可,第 12 章配置里讲</li>
+              <li>VSCode 原生的「扩展选定」(<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>→</kbd>)与 <kbd>a</kbd><kbd>i</kbd><kbd>{</kbd> 是同赛道:前者鼠标脑,后者语言脑 —— 练后者</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>IdeaVim 支持 <kbd>i</kbd><kbd>w</kbd>/<kbd>i</kbd><kbd>(</kbd>/<kbd>i</kbd><kbd>{</kbd>/<kbd>i</kbd><kbd>"</kbd> 全家;<kbd>i</kbd><kbd>t</kbd> 标签对象近年版本也已内置(老版本需在 .ideavimrc 确认无禁用)</li>
+              <li>IDEA 自带的结构化选择(<kbd>Cmd</kbd>+<kbd>W</kbd> 扩大选择 / <kbd>Alt</kbd>+<kbd>Cmd</kbd>+<kbd>T</kbd> Surround With)与文本对象功能重叠 —— 建议:编辑动作用 Vim 对象,重构类操作(包裹 if/try)用 IDE 菜单,各吃各的长处</li>
+              <li>IDEA 的语法感知比 Vim 朴素匹配强:JSX 复杂标签上,IDEA 自己的高亮可以帮你预判 <kbd>i</kbd><kbd>t</kbd> 的边界</li>
+              <li>遇到对象失灵(尤其嵌套模板字符串),先检查光标位置,再考虑用 IDEA 的结构选择兜底</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>i</kbd> / <kbd>a</kbd></td><td>里面 / 周围(含边界+空白)</td><td><kbd>c</kbd><kbd>i</kbd><kbd>w</kbd></td><td>改光标所在的词 ⭐</td></tr>
+            <tr><td><kbd>i</kbd><kbd>w</kbd> / <kbd>a</kbd><kbd>w</kbd></td><td>词 / 词+尾部空格</td><td><kbd>c</kbd><kbd>i</kbd><kbd>(</kbd></td><td>重写括号内(参数)⭐</td></tr>
+            <tr><td><kbd>i</kbd><kbd>(</kbd> <kbd>i</kbd><kbd>{</kbd> <kbd>i</kbd><kbd>[</kbd></td><td>各括号的内部</td><td><kbd>c</kbd><kbd>i</kbd><kbd>"</kbd></td><td>改字符串内容 ⭐</td></tr>
+            <tr><td><kbd>a</kbd><kbd>(</kbd> 等</td><td>连括号一起(拆壳)</td><td><kbd>c</kbd><kbd>i</kbd><kbd>t</kbd></td><td>改标签内容(前端)</td></tr>
+            <tr><td><kbd>i</kbd><kbd>p</kbd> / <kbd>a</kbd><kbd>p</kbd></td><td>段落 / 段落+尾空行</td><td><kbd>d</kbd><kbd>a</kbd><kbd>p</kbd></td><td>删一整段(干净)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:i 是里面,a 是带壳 —— 想作用于「这个东西」,先喊它的名字,光标在屋里就行。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch03.html">← 第 3 章 · 移动·行与文件</a>
+          <a href="ch05.html">第 5 章 · 编辑动词与语法 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch04.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 5 章 · 编辑动词与语法 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch05" data-ch="ch05">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 05 · 语法篇 中(全站核心)</div>
+        <h1>编辑动词与语法:把句子说完整</h1>
+        <div class="ch-meta-line">预计阅读 45 分钟(含练习约 1.5 小时)· 前置:第 4 章 · 本章演示 10 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>把「编辑语言」的<strong>语法公式</strong>刻进本能:<code>[count] 动词 [count] 名词</code></li>
+          <li>掌握三大主力动词的完整家族:<kbd>d</kbd>(删)、<kbd>c</kbd>(改)、<kbd>y</kbd>(复制)</li>
+          <li>掌握粘贴 <kbd>p</kbd>/<kbd>P</kbd> 的两种语义:<strong>行有行的粘法,字有字的粘法</strong></li>
+          <li>会用小动词干小活:<kbd>r</kbd> 单字替换、<kbd>s</kbd>/<kbd>S</kbd>、大小写 <kbd>~</kbd>/<kbd>g</kbd><kbd>U</kbd>、缩进 <kbd>&gt;</kbd><kbd>&gt;</kbd>/<kbd>=</kbd><kbd>=</kbd>、合并 <kbd>J</kbd></li>
+          <li>理解<strong>计数前缀</strong>的自由:<code>2dw</code> 与 <code>d2w</code> 是同一句话的两种语序</li>
+          <li>毕业演出:用三句「编辑语言」完成一次真实的函数签名重构</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 语法总纲:一句话的完整结构</h2>
+        <p><a href="ch00.html">第 0 章</a>预告、<a href="ch01.html">第 1 章</a>埋线、<a href="ch02.html">第 2 章</a>备料(移动 = 名词)、<a href="ch04.html">第 4 章</a>扩编(文本对象 = 名词)—— 现在把动词补齐,这门「编辑语言」就成句了。它的语法只有一条:</p>
+        <p><strong><code>[数字] 动词 [数字] 名词</code></strong></p>
+        <p>读几个例句找找感觉:<code>3dw</code> = 「删三个词」;<code>c2w</code> = 「改两个词」;<code>d2i(</code>……好吧这句是病句,但 <code>2daw</code>(删两个词)、<code>y3w</code>(复制三个词)都是地道表达。数字可以出现在动词前、名词前、或两边都出现 —— 效果是<strong>相乘</strong>的,位置随你喜欢:</p>
+
+        <div class="demo-slot" data-demo="ch05-02-count"></div>
+
+        <p>这条公式真正的威力在于<strong>组合爆炸</strong>:十来个动词 × 几十个名词,自动生成上百条命令,而你需要「背」的只有每个词本身的含义。传统编辑器教你的每个快捷键都是一条孤立的知识;Vim 教你的是一套能自己造句的语法。这也是本教程把 ch04、ch05 称为「语法篇」的原因 —— 学完这两章,后面所有章节(可视化、查找、宏)不过是往这套语法里<strong>添几个新词</strong>。</p>
+        <p>把公式用顺,还有三条「说话纪律」值得贴在显示器边上:</p>
+        <ul>
+          <li><strong>说完整的句子</strong>。按了 <kbd>d</kbd> 却还没想好名词?宁可 <kbd class="escape">Esc</kbd> 取消重来,也别糊一个错的范围 —— 半截句子是最常见的误删来源;</li>
+          <li><strong>先想名词,再配动词</strong>。动手前先自问「我要动的<em>东西</em>是什么」(词?括号?行?)—— 名词定了,动词往往只有一两个候选;<strong>反过来先按动词再找名词,说明还没想清就出手了</strong>;</li>
+          <li><strong>数字是量词,不是口令</strong>。<code>3dw</code> 里的 3 和中文「删<em>三个</em>词」的「三个」是同一个词性 —— 它修饰后面的名词,不该被当成需要背的「快捷键编号」。</li>
+        </ul>
+
+        <div class="callout tip">
+          <span class="co-title">💡 说话习惯养成法</span>
+          改代码前先在心里把意图翻译成一句中文:「删到分号」(<kbd>d</kbd><kbd>f</kbd><kbd>;</kbd>)、「改这个词」(<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd>)、「复制整行」(<kbd>y</kbd><kbd>y</kbd>)—— 再按出来。前两周刻意为之,之后中文会直接变成按键,跳过翻译。这一步没有任何技巧,纯靠本章的练习堆出来。
+        </div>
+
+        <h2>2. d 家族:射程菜单系统化</h2>
+        <p><kbd>d</kbd> 你已经用了一章半,现在把它系统化 —— <strong>d + 任何名词</strong>,一表全收:</p>
+
+        <div class="demo-slot" data-demo="ch05-01-d-family"></div>
+
+        <table class="ktable">
+          <thead><tr><th>句子</th><th>读法</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>d</kbd><kbd>w</kbd> / <kbd>d</kbd><kbd>e</kbd></td><td>删到下一词头 / 本词尾</td><td>从<strong>光标处</strong>起算 —— 注意与 <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 的区别</td></tr>
+            <tr><td><kbd>d</kbd><kbd>$</kbd> / <kbd>D</kbd></td><td>删到行尾</td><td><kbd>D</kbd> 是打包键,等价 <kbd>d</kbd><kbd>$</kbd></td></tr>
+            <tr><td><kbd>d</kbd><kbd>f</kbd>x / <kbd>d</kbd><kbd>t</kbd>x</td><td>删到 x(含)/ 删到 x 前</td><td>第 2 章的 <kbd>dt</kbd><kbd>,</kbd> 就是它</td></tr>
+            <tr><td><kbd>d</kbd><kbd>d</kbd></td><td>删当前行</td><td>名词 = 当前行,与 <kbd>y</kbd><kbd>y</kbd> 同构</td></tr>
+            <tr><td><kbd>d</kbd><kbd>i</kbd><kbd>w</kbd> / <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd></td><td>删词(词本身 / 带空格)</td><td>第 4 章词典,光标在词内即可</td></tr>
+            <tr><td><kbd>d</kbd><kbd>i</kbd><kbd>(</kbd> / <kbd>d</kbd><kbd>a</kbd><kbd>{</kbd></td><td>清空括号 / 连壳删块</td><td>跨行也罩得住</td></tr>
+          </tbody>
+        </table>
+        <p>一个此刻必须说清的设定:<strong>d 不是「删除」,是「剪切」</strong>。删掉的内容并没有蒸发,它躺在寄存器里,随时可以被 <kbd>p</kbd> 粘回来 —— 这既是福利(删了后悔有药),也是伏笔(第 9 章的「复制被删除顶掉」陷阱就从这来)。眼下你只需要知道:删掉的东西按 <kbd>p</kbd> 能再拿出来。</p>
+        <p>什么时候<strong>不该</strong>用 d?两个信号:①删完马上要打字 —— 换 <kbd>c</kbd>,一句话说完;②删的目的是「挪走」—— 直接规划成 d + p 的组合(下一节),别用 <kbd>x</kbd> 一个字符一个字符地抠。反过来,凡是「这段彻底不要了」,d + 大名词(<kbd>d</kbd><kbd>a</kbd><kbd>p</kbd>、<kbd>d</kbd><kbd>i</kbd><kbd>{</kbd>)是终点站,后面接 <kbd>u</kbd> 就是免费的回程票。</p>
+
+        <h2>3. c 家族:删了就开工</h2>
+        <p><kbd>c</kbd>(change)和 <kbd>d</kbd> 只差一步:删完<strong>立刻进入插入模式</strong>。经验法则一句话:<strong>接下来要打字,就用 c;纯删除,才用 d</strong>。用 d 删完再按 <kbd>i</kbd>,等于把一句话拆成两句说。</p>
+
+        <div class="demo-slot" data-demo="ch05-03-c-family"></div>
+
+        <p>看演示时盯住一个细节:<kbd>c</kbd><kbd>w</kbd> 删词时<strong>不吃尾部空格</strong>(<kbd>d</kbd><kbd>w</kbd> 才吃)。为什么?因为你删词是要接着打字的 —— 空格留下,新词直接顶上,排版天然正确。这是 Vim 里少见的「cw 特殊照顾」,也算语言的贴心之处(严格说 <kbd>c</kbd><kbd>w</kbd> 从词中按起行为等同 <kbd>c</kbd><kbd>e</kbd>:总是删到本词结尾)。</p>
+        <table class="ktable">
+          <thead><tr><th>句子</th><th>读法</th><th>打包键</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>c</kbd><kbd>w</kbd> / <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd></td><td>改词(后者光标随处,第 4 章 ⭐)</td><td>—</td></tr>
+            <tr><td><kbd>c</kbd><kbd>$</kbd></td><td>改到行尾</td><td><kbd>C</kbd>(大写打包)</td></tr>
+            <tr><td><kbd>c</kbd><kbd>c</kbd></td><td>清空整行重写</td><td><kbd>S</kbd></td></tr>
+            <tr><td><kbd>c</kbd><kbd>i</kbd><kbd>(</kbd> / <kbd>c</kbd><kbd>i</kbd><kbd>"</kbd></td><td>重写参数 / 重写字符串</td><td>—</td></tr>
+            <tr><td><kbd>c</kbd><kbd>t</kbd><kbd>,</kbd></td><td>改到逗号前</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p>大写打包键家族可以串起来记:<kbd>D</kbd> = <kbd>d</kbd><kbd>$</kbd>、<kbd>C</kbd> = <kbd>c</kbd><kbd>$</kbd>、<kbd>S</kbd> = <kbd>c</kbd><kbd>c</kbd>,再加上第 1 章的 <kbd>A</kbd> = <kbd>$</kbd><kbd>a</kbd>、<kbd>I</kbd> = <kbd>^</kbd><kbd>i</kbd> —— <strong>行尾、行首、整行,Shift 一下直达</strong>。它们不是为了省一个键,是为了让「打到行尾」变成一个单拍动作,节奏更顺。</p>
+        <p>从 <kbd>d</kbd> 换到 <kbd>c</kbd>,心理上要过的坎只有一个:你<strong>不再需要「删干净再进入插入」的两段式</strong>。传统编辑器的肌肉记忆是「选中 → 删除 → 打字」,三步各自为政;Vim 的 <kbd>c</kbd> 把后两步焊死成一步 —— 范围一旦圈定,光标已经就位、模式已经切换、就等你开口。练习时专门体会那个瞬间:<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 按下去的下一毫秒,手不应该有任何停顿地开始打字。<strong>c 的节奏是一口气</strong>,断了就说明又回去想「删了多少」了。</p>
+
+        <h2>4. y 家族:无痕的复制</h2>
+        <p><kbd>y</kbd>(yank,Vim 里「复制」的黑话)是三个主力动词里最安静的 —— 按下去<strong>屏幕上什么也不发生</strong>。这让新手很没安全感:「我复制了吗?」答案统一是:按对了就复制了,想看证据,第 9 章的 <code>:reg</code> 命令能打开寄存器查验。眼下先信任它:</p>
+
+        <div class="demo-slot" data-demo="ch05-04-y-family"></div>
+
+        <p><kbd>y</kbd> 的名词表和 <kbd>d</kbd> 完全同源 —— <kbd>y</kbd><kbd>w</kbd> 复制词、<kbd>y</kbd><kbd>$</kbd> 复制到行尾、<kbd>y</kbd><kbd>y</kbd> 复制整行、<kbd>y</kbd><kbd>i</kbd><kbd>w</kbd> 复制光标所在的词(第 4 章词典直接继承)、<kbd>y</kbd><kbd>i</kbd><kbd>(</kbd> 复制括号内全部。<strong>学动词不学搭配</strong>:动词认识名词库,搭配自动成立。</p>
+        <p>日常最高频的三连是:<kbd>y</kbd><kbd>i</kbd><kbd>w</kbd>(抓个词)→ 移动 → <kbd>p</kbd>(放下)。比如把一个变量名抄去别处、把参数列表复制到注释里当文档。黄金搭档 <kbd>y</kbd><kbd>i</kbd><kbd>w</kbd> + <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> + <kbd>p</kbd> 还能玩「用寄存器里的词替换当前词」,第 9 章展开。</p>
+        <p>复制要养成三个小习惯:①<strong>复制前先选好名词再按</strong> —— y 无声,按错也不响铃,错了的复制会在粘贴时才爆雷;②<strong>复制行用 <kbd>y</kbd><kbd>y</kbd> 而不是 <kbd>y</kbd><kbd>$</kbd></strong> —— 前者是行形状(粘出来新起一行),后者是字符形状,粘贴行为完全不同;③<strong>大段复制宁可先 <kbd>v</kbd> 选中看一眼范围</strong>(第 7 章)再 <kbd>y</kbd> —— 复制是不可见的操作,可见的确认值得多花半秒。</p>
+
+        <h2>5. p 与 P:行有行的粘法,字有字的粘法</h2>
+        <p><kbd>p</kbd>(paste)在光标<strong>后</strong>粘贴,<kbd>P</kbd>(大写)在光标<strong>前</strong>粘贴。但它粘贴的「形状」不由你决定,由<strong>寄存器里内容的形状</strong>决定:<kbd>y</kbd><kbd>y</kbd>/<kbd>d</kbd><kbd>d</kbd> 存的是「行」,粘出来就是<strong>新起一行</strong>;<kbd>y</kbd><kbd>w</kbd>/<kbd>d</kbd><kbd>w</kbd>/<kbd>y</kbd><kbd>i</kbd><kbd>w</kbd> 存的是「字符」,粘出来就<strong>插进当前行</strong>:</p>
+
+        <div class="demo-slot" data-demo="ch05-05-p-semantics"></div>
+
+        <p>这个演示藏了两个日后天天用的「搬家技巧」:<strong><kbd>d</kbd><kbd>d</kbd> + <kbd>p</kbd> = 把当前行往下移一行</strong>(行序调整,比剪切板来回倒快得多);<strong><kbd>d</kbd><kbd>w</kbd> + <kbd>P</kbd> = 词序调整</strong>(把词搬到光标前)。本质都是「剪切 + 粘贴」= 移动 —— Vim 没有单独的「移动」命令,语言自己组合出来了。</p>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>粘贴位置</th><th>行寄存器时</th><th>字符寄存器时</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>p</kbd></td><td>光标后</td><td>粘到下方成新行</td><td>插在光标字符之后</td></tr>
+            <tr><td><kbd>P</kbd></td><td>光标前</td><td>粘到上方成新行</td><td>插在光标字符之前</td></tr>
+            <tr><td><kbd>3</kbd><kbd>p</kbd></td><td>同上,×3</td><td colspan="2">粘贴也吃计数:三份副本一次到位</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout tip">
+          <span class="co-title">💡 快捷键 xp:交换两个字符</span>
+          把 <code>verison</code> 的 i 和 s 换回来:光标放到 i 上,按 <kbd>x</kbd>(删掉 i)再 <kbd>p</kbd>(粘到后面)—— <code>verison</code> 变 <code>version</code>,两键修完一处笔误。同理 <kbd>d</kbd><kbd>d</kbd><kbd>p</kbd> 交换相邻两行、<kbd>d</kbd><kbd>w</kbd><kbd>P</kbd> 交换相邻词。「删 + 粘」的化学反应值得专门玩十分钟。
+        </div>
+
+        <h2>6. r 与 s:小改不打草稿</h2>
+        <p>不是每次修改都值得「清范围 + 重打」。改一个字符,<kbd>r</kbd>(replace)连插入模式都不进:</p>
+
+        <div class="demo-slot" data-demo="ch05-06-r-s"></div>
+
+        <p><kbd>r</kbd> 后面跟<strong>一个字符</strong>,原地换掉光标处的字符,光标不动、模式不变、节奏不断。<kbd>x</kbd><kbd>1</kbd> 变 <kbd>x</kbd><kbd>2</kbd>、<kbd>i</kbd> 变 <kbd>j</kbd>,这类「只差一个字母」的场景它是绝对王者(还能 <kbd>3</kbd><kbd>r</kbd><kbd>-</kbd> 把三个字符换成 <code>---</code>)。<kbd>s</kbd>(substitute)则是「删一个字符并顺势进入插入」,是 <kbd>c</kbd><kbd>l</kbd> 的打包;<kbd>S</kbd> 上节已见过 = <kbd>c</kbd><kbd>c</kbd>。选型口诀:<strong>换一个字符用 r,要接着打字用 s,成片修改回 c + 名词</strong>。</p>
+
+        <h2>7. 大小写:~ 与 gU / gu</h2>
+        <p>三个换挡动词:<kbd>~</kbd> 翻转光标处一个字符(光标右移,可连按);<kbd>g</kbd><kbd>U</kbd> 把名词变大写、<kbd>g</kbd><kbd>u</kbd> 变小写 —— <kbd>g</kbd> 是前缀(第 2 章的 <kbd>g</kbd><kbd>_</kbd> 见过),后面接一个<strong>完整的动词-名词组合</strong>:</p>
+
+        <div class="demo-slot" data-demo="ch05-07-case"></div>
+
+        <p>最值得练熟的是 <kbd>g</kbd><kbd>U</kbd><kbd>i</kbd><kbd>w</kbd>:光标所在的词整个变大写 —— <code>url</code> 变 <code>URL</code>、<code>api_key</code> 风格的常量命名信手拈来(下划线不改,Snake Case 里逐段 <kbd>g</kbd><kbd>U</kbd><kbd>i</kbd><kbd>w</kbd> + <kbd>w</kbd> 正好)。整行版是 <kbd>g</kbd><kbd>U</kbd><kbd>U</kbd>/<kbd>g</kbd><kbd>u</kbd><kbd>u</kbd>。注意读法:<kbd>g</kbd><kbd>U</kbd> 读「变大写」,它和 <kbd>d</kbd> 平级 —— 所以 <kbd>g</kbd><kbd>U</kbd><kbd>i</kbd><kbd>w</kbd> 是标准的「动词 + i + 名词」句式,<kbd>g</kbd> 只是动词的姓氏。</p>
+
+        <h2>8. 缩进与格式化:&gt;&gt; &lt;&lt; ==</h2>
+        <p>在 IDE 里写代码,缩进大多是被回车键自动带出来的;但改别人的代码、贴代码、删了外层块之后,缩进就乱了。三个动词专治:</p>
+
+        <div class="demo-slot" data-demo="ch05-08-indent"></div>
+
+        <p><kbd>&gt;</kbd><kbd>&gt;</kbd> 当前行右移一级、<kbd>&lt;</kbd><kbd>&lt;</kbd> 左移一级(<kbd>&gt;</kbd> 和 <kbd>d</kbd> 一样是等名词的动词 —— <kbd>&gt;</kbd><kbd>i</kbd><kbd>{</kbd> 缩进整个块、<kbd>2</kbd><kbd>&gt;</kbd><kbd>&gt;</kbd> 缩进两行,都是合法句);<kbd>=</kbd><kbd>=</kbd> 自动缩进当前行 —— <strong>按语言规则摆正</strong>。在 IDE 里 <kbd>=</kbd> 背后调用的是编辑器/语言服务的格式化引擎,表现比纯 Vim 更聪明,放心用。想格式化整个文件,别想着 <kbd>g</kbd><kbd>g</kbd><kbd>=</kbd><kbd>G</kbd>(虽然它确实行),直接用 IDE 的格式化快捷键更省心 —— 第 12 章会讲「Vim 管编辑、IDE 管工程」的分工哲学,这里是第一次预演。</p>
+
+        <h2>9. J:把下一行拉上来</h2>
+        <p><kbd>J</kbd>(Join)把下一行合并到当前行尾,自动吃掉下一行的缩进、在连接处补一个空格;<kbd>g</kbd><kbd>J</kbd> 则原样拼接不补空格:</p>
+
+        <div class="demo-slot" data-demo="ch05-09-J"></div>
+
+        <p>J 的高频场景:①别人代码里的<strong>无脑断行</strong>拼回去;②把两段字符串字面量拼成一个(配 <kbd>J</kbd> 还是 <kbd>g</kbd><kbd>J</kbd> 看引号里有没有空格);③写 markdown 时把软折行的段落并回一行。反向操作(一行拆两行)是 <kbd>r</kbd>+回车 —— 把某个字符原地换成换行,又见 <kbd>r</kbd> 的百变。</p>
+        <p>顺带交代一个家族惯例:<kbd>J</kbd> 不吃计数前缀?<strong>吃</strong> —— <kbd>3</kbd><kbd>J</kbd> 把下面两行一起并上来。但在 IDE 里我更推荐单步 <kbd>J</kbd><kbd>J</kbd> 地按:合并是不可视的操作(你看不到下一行是什么就并了),一步一步按、每步看清再继续,比赌三行一次到位稳妥 —— 这是少数「宁慢勿快」的命令,快有 <kbd>u</kbd> 兜底,稳靠自己。</p>
+
+        <h2>10. 毕业演出:三句话的重构</h2>
+        <p>把本章所有零件组装起来,做一次真实的重构:函数 <code>area(w, h)</code> 参数名太吝啬,要改成 <code>width, height</code>,函数体同步更新。传统做法:选中、删、打、再选中、再删、再打…… 现在你说三句话:</p>
+
+        <div class="demo-slot" data-demo="ch05-10-capstone"></div>
+
+        <p>数一下:第一句 <kbd>c</kbd><kbd>i</kbd><kbd>(</kbd>(改内括号)重写签名;第二、三句 <kbd>f</kbd><kbd>w</kbd> + <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd>、<kbd>f</kbd><kbd>h</kbd> + <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd>(找旧名、改内词)同步函数体 —— 全程 15 个左右的按键,没有一次方向键、没有一次鼠标、没有一个多余字符。<strong>这就是「编辑即说话」的完成态</strong>:眼睛看到意图,嘴里是中文,手上是语法。</p>
+        <p>复盘这次重构用到的词法:名词两个(<kbd>i</kbd><kbd>(</kbd>、<kbd>i</kbd><kbd>w</kbd>,第 4 章),动词两个(<kbd>c</kbd>、隐含的 <kbd>f</kbd> 移动,第 2 章),连一个本章新词都没有 —— 但只有把「动词 + 名词」的公式内化成本能,这些零件才能在两秒内自动组装成句子。往后的章节会不断给你新词(<kbd>v</kbd> 选择的名词、<kbd>/</kbd> 查找的名词、宏的自动化),而句子结构,永远只有这一条。</p>
+
+        <h2>11. 每日训练计划(30 分钟 × 3 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1–3,读 §1–§3;靶场把 d/c 的名词各配 5 个</td><td>cw 和 dw 的空格差异说得清</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1:三动词轮换</td><td>同一词上 diw/ciw/yiw 不假思索</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 4–6,读 §4–§6</td><td>能说出 p/P 行级字符级的判断规则</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 2 + 练习 3</td><td>dd+p 移行 10 次不卡壳</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>重放演示 7–10,读 §7–§10,重点看毕业演出</td><td>能默写 capstone 的三句话</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:盲测毕业考</td><td>12 题对 9 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>12. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>语法公式</strong>:<code>[数字] 动词 [数字] 名词</code> —— 数字相乘、位置随便,动词 × 名词组合爆炸,你背的只有词,不是句子;</li>
+          <li><strong>要打字用 c,纯删用 d,搬运用 d+ p</strong>:剪切粘贴合起来就是「移动」,dd+p 移行、dw+P 移词、xp 修笔误;</li>
+          <li><strong>小活用小工具</strong>:一个字符 r、大小写 gUiw、缩进 ==、并线 J —— 别动不动清一大片再重打。</li>
+        </ol>
+        <p>下一章回到插入模式本身:进出的全部姿势、插入模式内的快捷键、替换模式 <kbd>R</kbd> —— 把「打字」这最后一公里也优化掉。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:三动词轮换(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场任选 20 个标识符,每个上面连做三件事:<kbd>d</kbd><kbd>i</kbd><kbd>w</kbd> → <kbd>u</kbd>;<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 输入 <code>foo</code> → <kbd>Esc</kbd> → <kbd>u</kbd>;<kbd>y</kbd><kbd>i</kbd><kbd>w</kbd> → <kbd>w</kbd> → <kbd>P</kbd> → <kbd>u</kbd>。感受同一个名词在三个动词下的三种手感。通过线:手指不再在 d/c/y 之间犹豫。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:行搬运工(10 分钟)</summary>
+          <div class="answer">
+            <p>找一段 15 行左右的代码,只用 <kbd>d</kbd><kbd>d</kbd> + <kbd>p</kbd>(和 <kbd>k</kbd>/<kbd>j</kbd> 移动)把乱序的行排成你想要的顺序(比如把 import 全挪到顶部)。规则:全程禁用鼠标和 <kbd>Cmd</kbd>+X。体会「删行 = 剪切行」和「p 粘到下方」的组合 —— 十几分钟下来你对行级移动的恐惧会消失。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:大小写与缩进工坊(10 分钟)</summary>
+          <div class="answer">
+            <p>①找 10 个全小写变量,逐个 <kbd>g</kbd><kbd>U</kbd><kbd>i</kbd><kbd>w</kbd> 变大写,<kbd>u</kbd> 撤销;<kbd>~</kbd> 连按翻转一个词。②把一段故意弄乱的缩进(你手动加空格)用 <kbd>&gt;</kbd><kbd>&gt;</kbd>/<kbd>&lt;</kbd><kbd>&lt;</kbd>/<kbd>=</kbd><kbd>=</kbd> 修回整齐;再试试 <kbd>&gt;</kbd><kbd>i</kbd><kbd>{</kbd> 整块右移 —— 又一次「对象当名词」。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>对着真实代码,12 个任务先说按键再验证:①删三个词 ②改两个词 ③删到行尾(两种按键)④清空整行重写(两种按键)⑤复制整行并粘到下面 ⑥把当前行下移一行 ⑦交换相邻两行 ⑧修一个笔误字母 ⑨变量名整个变大写 ⑩当前行自动缩进 ⑪合并下两行(补空格/不补各一次)⑫改某函数的参数列表。答案例:<kbd>3dw</kbd>/<kbd>c2w</kbd>/<kbd>D</kbd> 或 <kbd>d$</kbd>/<kbd>cc</kbd> 或 <kbd>S</kbd>/<kbd>yyp</kbd>/<kbd>ddp</kbd>/<kbd>ddp</kbd>/<kbd>rp</kbd> 或 <kbd>xp</kbd>/<kbd>gUiw</kbd>/<kbd>==</kbd>/<kbd>J</kbd> 与 <kbd>gJ</kbd>/<kbd>ci(</kbd>。12 对 9 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 期待 cw 删掉尾部空格</span>
+          从 <kbd>d</kbd><kbd>w</kbd> 迁移过来的肌肉记忆会撞墙:<kbd>c</kbd><kbd>w</kbd> 只删到词尾,空格留着 —— 这是为了你打完新词排版直接正确。真想连空格一起换,用 <kbd>c</kbd><kbd>a</kbd><kbd>w</kbd> 或先 <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 再 <kbd>i</kbd>。分不清时想:c 是「改内容」,不是「打扫房间」。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 p 粘出了奇怪的位置</span>
+          以为是 bug,其实是<strong>寄存器形状</strong>在决定:yy 存的是行,粘出来必是新行;想粘在光标后却插进了行中间,说明寄存器里是字符级的。先想「我刚才 y/dd 的是什么形状」,再选 <kbd>p</kbd>/<kbd>P</kbd>。习惯后这反而是可控的精确。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 指望 . 能重复一切</span>
+          本章你可能已经发现按 <kbd>.</kbd> 有时能把刚才的修改再来一遍 —— 很诱人,但它重复的是「最后一次<strong>变更</strong>」,移动和纯 yank 不算数,边界微妙。先别急着把工作流押在它身上,第 10 章专门讲它的适用边界和宏这个完全体。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 用 == 格式化整个文件</span>
+          <kbd>=</kbd><kbd>=</kbd> 只管当前行;虽然 <kbd>g</kbd><kbd>g</kbd><kbd>=</kbd><kbd>G</kbd> 确实能全文件格式化,但在 IDE 里请把「全文件格式化」交给 IDE 自己的快捷键(VSCode <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>,IDEA <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd>)—— 语言服务排的版比 Vim 的内置规则聪明。Vim 的 <kbd>=</kbd> 留给「顺手修一两行」。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>本章动词全家(d/c/y/p/r/s/~ / gU / &gt;&gt; / == / J)VSCodeVim 全部原生支持</li>
+              <li><kbd>=</kbd><kbd>=</kbd> 会调用语言服务的格式化(和 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> 同源),格式化结果一致</li>
+              <li><kbd>Cmd</kbd>+<kbd>c</kbd>/<kbd>v</kbd> 与 <kbd>y</kbd>/<kbd>p</kbd> 默认各自为政:开了 <code>vim.useSystemClipboard</code>(第 1 章配置)后共用系统剪贴板,互不打架</li>
+              <li>整行移动有个原生对手 <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> —— 和 <kbd>d</kbd><kbd>d</kbd><kbd>p</kbd> 二选一,顺手就行,但在纯 Vim 环境(远程/终端)只有后者永远在线</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>IdeaVim 同样全支持;.<kbd>J</kbd> 合并、<kbd>g</kbd><kbd>U</kbd> 大小写这类冷门键也在线</li>
+              <li><kbd>=</kbd><kbd>=</kbd> 走 IDEA 的 Code Style 引擎;全文件格式化用 <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd></li>
+              <li>重要分工:<strong>跨文件重命名千万别用 ciw</strong>,用 IDEA 的 Rename 重构(<kbd>Shift</kbd>+<kbd>F6</kbd>)—— 它改的是符号引用,不是文本。<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 只管单文件内的字面改名</li>
+              <li>IDEA 的 <kbd>Cmd</kbd>+<kbd>D</kbd>(Duplicate Line)与 <kbd>y</kbd><kbd>y</kbd><kbd>p</kbd> 等价,知道即可,继续用 Vim 侧保持手感统一</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>N动词N名词</code></td><td>计数相乘,位置随便</td><td><kbd>C</kbd> / <kbd>D</kbd> / <kbd>S</kbd></td><td>c$ / d$ / cc 打包键</td></tr>
+            <tr><td><kbd>d</kbd> / <kbd>c</kbd> / <kbd>y</kbd></td><td>删(=剪切)/ 改 / 复制</td><td><kbd>r</kbd>x / <kbd>s</kbd></td><td>换单字符 / 删一个顺势改</td></tr>
+            <tr><td><kbd>p</kbd> / <kbd>P</kbd></td><td>粘到后 / 前(形状随寄存器)</td><td><kbd>~</kbd> / <kbd>g</kbd><kbd>U</kbd><kbd>i</kbd><kbd>w</kbd></td><td>翻转一字符 / 词变大写</td></tr>
+            <tr><td><kbd>y</kbd><kbd>y</kbd> + <kbd>p</kbd></td><td>复制行 + 粘下行</td><td><kbd>&gt;</kbd><kbd>&gt;</kbd> / <kbd>=</kbd><kbd>=</kbd></td><td>缩进一级 / 自动缩进行</td></tr>
+            <tr><td><kbd>d</kbd><kbd>d</kbd> + <kbd>p</kbd></td><td>当前行下移(搬家)</td><td><kbd>J</kbd> / <kbd>g</kbd><kbd>J</kbd></td><td>并行(补/不补空格)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:数字 × 动词 × 名词 —— 想清楚要说什么,再动手;删即剪切,y 无痕,p 看形状。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch04.html">← 第 4 章 · 文本对象</a>
+          <span class="disabled">第 6 章 · 插入与替换模式(敬请期待)</span>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch05.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 0 章 · 使用指南 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch00" data-ch="ch00">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 00 · 使用指南</div>
+        <h1>开始之前:怎么用这本教程</h1>
+        <div class="ch-meta-line">预计阅读 8 分钟 · 前置:无 · 本章演示 1 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>会用<strong>演示播放器</strong>:播放、暂停、单步、调速、键盘控制</li>
+          <li>会用<strong>进度系统</strong>:章末勾「已读」,首页看总进度,断点续学</li>
+          <li>掌握本教程的学习方法:<strong>每天 5 个新键 + 靶场 + 真实代码</strong>,不背键位表</li>
+          <li>预习贯穿全书的世界观:Vim 是一门<strong>「动词 + 名词」的编辑语言</strong></li>
+          <li>看懂路线图与写作约定,知道每章的固定结构怎么配合你的阅读节奏</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 这本教程的用法(5 分钟版)</h2>
+        <p>整个站点是纯静态网页:<strong>双击 <code>index.html</code> 就能离线阅读</strong>,不需要联网、不需要装任何东西。顶栏可以切换<strong>浅色(羊皮纸)/ 深色(终端黑)</strong>双主题,选择会被记住;宽屏时左侧有<strong>本章目录</strong>,点标题直达对应小节。</p>
+        <p>每一章的结构完全固定,你可以把它当成一种「训练流程」:</p>
+        <table class="ktable">
+          <thead><tr><th>段落</th><th>内容</th><th>建议怎么用</th></tr></thead>
+          <tbody>
+            <tr><td>学习目标</td><td>本章结束时你会获得什么</td><td>先扫一眼,带着问题往下读</td></tr>
+            <tr><td>正文 + 动画</td><td>按键表 + 回放演示 + 决策方法</td><td>读到演示就<strong>动手单步</strong>,别只看自动播放</td></tr>
+            <tr><td>练习</td><td>≥3 题,答案默认折叠</td><td>先自己做,再展开对答案</td></tr>
+            <tr><td>常见陷阱</td><td>新手真实踩过的坑</td><td>中招了再回来看也不迟</td></tr>
+            <tr><td>IDE 差异</td><td>VSCode / IDEA 两栏对照</td><td>只看你用的那个 IDE 也行</td></tr>
+            <tr><td>本章速记</td><td>一页按键表 + 一句话心法</td><td>第二天复习的入口</td></tr>
+          </tbody>
+        </table>
+        <p>章末有<strong>「标记本章已读」</strong>按钮,勾掉后首页的进度条会前进——这是给「隔天续学」用的路标:每次打开站点,从第一个没勾的章节继续就行。</p>
+
+        <h2>2. 播放器:你的慢动作教练</h2>
+        <p>全书所有动画都由同一个播放器渲染,长得像一个小终端。它有五个区,从上到下:标题与<strong>控制条</strong>、<strong>代码区</strong>(光标所在处会闪烁)、<strong>状态栏</strong>(当前模式 + 待决按键)、<strong>按键流</strong>(依次点亮的键帽)、<strong>解说</strong>(当前这一步在干什么)。</p>
+
+        <div class="demo-slot" data-demo="ch00-01-player-tour"></div>
+
+        <p>控制条的每个按钮(以及对应的键盘操作——<strong>先用鼠标点一下播放器任意位置</strong>让它获得焦点):</p>
+        <table class="ktable">
+          <thead><tr><th>操作</th><th>按钮</th><th>键盘</th><th>什么时候用</th></tr></thead>
+          <tbody>
+            <tr><td>播放 / 暂停</td><td>▶ / ⏸</td><td><kbd>空格</kbd></td><td>默认连播;想停下来想一想就暂停</td></tr>
+            <tr><td>单步前进 / 后退</td><td>⏭ / ⏮</td><td><kbd>→</kbd> / <kbd>←</kbd></td><td><strong>最重要的用法</strong>:一个键一个键地看状态变化</td></tr>
+            <tr><td>回到开头</td><td>⟲</td><td>—</td><td>没看清就重来,不要吝啬</td></tr>
+            <tr><td>调速</td><td>1× / 2× / ½×</td><td>—</td><td>熟练后 2× 快进,陌生键 ½× 慢放</td></tr>
+          </tbody>
+        </table>
+        <p>两个细节:① 演示<strong>滚动到视口内会自动播放一遍</strong>,之后不再打扰你;② 代码区永远深色、可以选中复制——想把演示里的代码粘到自己的靶场里练?直接划选。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 心法</span>
+          看动画的正确姿势不是「等它播完」,而是:<strong>先按空格暂停,猜下一个键是什么,再按 ⏭ 验证</strong>。猜对了才说明你真的在学,而不是看视频。
+        </div>
+
+        <h2>3. 学习方法:肌肉记忆不是背出来的</h2>
+        <p>Vim 是<strong>肌肉记忆</strong>,不是知识。读懂一章只需要十分钟,但「手指先于意识按出 <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd>」需要重复。所以本教程的进度单位不是「读完」,而是「练会」。</p>
+        <p>方法论就三条铁律,全部围绕<strong>「少量、当天、重复」</strong>:</p>
+        <ol>
+          <li><strong>每天最多 5 个新键</strong>,配 20 分钟专门练习。贪多的结局是全部还回去;</li>
+          <li><strong>当天在靶场做 10 遍</strong>:建一个 <code>vim-practice.txt</code>,粘几十行任意代码,新键在上面砸 10 次。靶场不怕砸错,真实代码怕;</li>
+          <li><strong>第二天先复习昨天的键</strong>,再学新的。间隔重复是肌肉记忆的唯一捷径,没有例外。</li>
+        </ol>
+        <table class="ktable">
+          <thead><tr><th>阶段</th><th>体感</th><th>该做什么</th></tr></thead>
+          <tbody>
+            <tr><td>第 1–3 天</td><td>又慢又别扭,比用鼠标还慢,想放弃</td><td>正常。只要求「按对」,不要求「按快」</td></tr>
+            <tr><td>第 4–10 天</td><td>常用键不用想了,偶尔还要瞟速记表</td><td>坚持每天 5 个新键,开始允许自己在真实代码里用</td></tr>
+            <tr><td>第 2–3 周</td><td>手指开始「自己动」,反而说不清按了什么</td><td>肌肉记忆上身的标志,加大真实代码占比</td></tr>
+            <tr><td>1 个月后</td><td>回不去方向键了</td><td>毕业标准达成</td></tr>
+          </tbody>
+        </table>
+        <p>至于网上流传的键位速查表:<strong>查表学不会 Vim</strong>。表是给已经会的人省时间的,不是给不会的人入门的。本教程的附录 A 也有一张,但它出现在最后,而不是最前——顺序本身就是方法论。</p>
+
+        <h2>4. 全书世界观:Vim 是一门编辑语言</h2>
+        <p>先剧透全书最重要的一件事。Vim 的按键不是一堆孤立快捷键,而是一门微型语言的<strong>单词</strong>,拼起来才是句子:</p>
+
+        <div class="grammar-strip">
+          <span class="gs-box gs-verb"><span class="gs-key">d</span><span class="gs-name">动词 · 删</span></span>
+          <span class="gs-eq">+</span>
+          <span class="gs-box gs-noun"><span class="gs-key">w</span><span class="gs-name">名词 · 一个词</span></span>
+          <span class="gs-eq">=</span>
+          <span class="gs-result">dw ——「删掉一个单词」</span>
+        </div>
+        <div class="grammar-strip">
+          <span class="gs-box gs-verb"><span class="gs-key">c</span><span class="gs-name">动词 · 改</span></span>
+          <span class="gs-eq">+</span>
+          <span class="gs-box gs-noun"><span class="gs-key">iw</span><span class="gs-name">名词 · 光标所在的词</span></span>
+          <span class="gs-eq">=</span>
+          <span class="gs-result">ciw ——「改掉这个词」,删掉并等你输入</span>
+        </div>
+
+        <p>「动词 + 名词」意味着:<strong>每学一个新名词,你所有的动词都自动多了一个搭配</strong>。名词学得越多,句子按指数增长——这是 Vim 越用越快的根本原因,也是本教程把「文本对象」(第 4 章)和「编辑动词」(第 5 章)安排成核心两章的原因。现在看不懂 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 完全没关系,第 1 章结束后你会先拿到最小生存集。</p>
+
+        <h2>5. 路线图:五个阶段,各解决一个痛点</h2>
+        <table class="ktable">
+          <thead><tr><th>阶段</th><th>章节</th><th>解决什么痛点</th><th>里程碑</th></tr></thead>
+          <tbody>
+            <tr><td>① 生存</td><td>ch01</td><td>「装了插件不敢用,怕把自己锁在文件里」</td><td>能进出模式、能删能撤销、能保存</td></tr>
+            <tr><td>② 移动</td><td>ch02–ch03</td><td>「光标太慢,手老往方向键跑」</td><td>行内行间全键盘跳跃</td></tr>
+            <tr><td>③ 语法</td><td>ch04–ch06</td><td>「会移动了,但编辑还是一个个字符抠」</td><td>按「词 / 括号 / 引号」的粒度编辑</td></tr>
+            <tr><td>④ 进阶</td><td>ch07–ch11</td><td>「重复劳动太多,复制粘贴到手酸」</td><td>选择、替换、寄存器、宏批量干活</td></tr>
+            <tr><td>⑤ 集成实战</td><td>ch12–ch13</td><td>「Vim 和 IDE 打架,不知道听谁的」</td><td>键位分工明确,12 个真实场景毕业</td></tr>
+          </tbody>
+        </table>
+        <p><strong>不要跳级</strong>:每个阶段都以下一个阶段为地基。如果某天时间不够,宁可把当天 5 个键练熟,也别往前赶章节。</p>
+
+        <h2>6. 写作约定:认识的符号</h2>
+        <ul>
+          <li><kbd>d</kbd> 这样的<strong>键帽</strong>表示「按这个键」;<kbd>d</kbd><kbd>d</kbd> 表示连续按两下;</li>
+          <li><code>:w</code> 这样的<strong>代码样式</strong>表示命令行命令(先按 <kbd>:</kbd> 再输入,回车执行);</li>
+          <li><strong>待决状态</strong>:按下 <kbd>d</kbd> 后 Vim 在等你给目标,此时状态栏右下会显示 <code>d</code>——动画里精确还原了这个细节;</li>
+          <li>术语全书统一:<strong>动词</strong>(operator,如 d/c/y)、<strong>名词</strong>(motion / 文本对象)、<strong>寄存器</strong>(ch09)、<strong>宏</strong>(ch10)。</li>
+        </ul>
+        <p>准备好了?翻到第 1 章,今天就能在 VSCode / IDEA 里活下来。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:单步看完本章演示(2 分钟)</summary>
+          <div class="answer">
+            <p>回到上面的播放器:先点一下它获得焦点,按<strong>空格</strong>暂停,然后用 <kbd>→</kbd> 一步一步走完。要求每一步都能说出三件事:<strong>按了什么键、模式栏显示什么、buffer 哪一行变了</strong>。说不出来就 <kbd>←</kbd> 退回去再看一遍。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:配置你的阅读环境(1 分钟)</summary>
+          <div class="answer">
+            <p>① 点顶栏按钮切换到你要的主题;② 滚回本章末尾,点「标记本章已读」;③ 回到首页看进度条变成 <code>1 / 14</code>。以后每天打开站点,从第一个没勾的章继续——这就是断点续学。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:建立你的靶场文件(每天开工第一件事)</summary>
+          <div class="answer">
+            <p>新建 <code>vim-practice.txt</code>(VSCode 的 Scratch 文件也行),从任意项目里粘 30–50 行代码进去,存在固定位置(比如 <code>~/vim-practice.txt</code>)。从明天起,每天开工先打开它热身 5 分钟。规则只有一条:<strong>新键先在靶场砸 10 遍,再带进真实代码</strong>。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 收藏夹吃灰症</span>
+          收藏了教程 = 学会了,是当代最大的自我欺骗。解药:现在就做上面的练习 3,把靶场建出来——物理世界的一个 txt 文件,比任何收藏夹都诚实。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 一天想学一章</span>
+          知识上你读得懂,手上完全跟不上,三天后热情和键位一起清零。本书 13 章是按<strong>至少三周</strong>的节奏设计的:每天 5 个新键 + 20 分钟,慢就是快。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 跳级看高级货</span>
+          直接翻到宏、块编辑那些「看起来最帅」的章节,结果每一步都卡在基础键上,只会挫败。宏的全部乐趣建立在移动和文本对象的条件反射上——按路线图走。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>建议<strong>开一个独立的 VSCode 窗口专放靶场文件</strong>,教程读到哪、练到哪,不污染工作项目</li>
+              <li>还没装插件?第 1 章 §2 有三步安装与最小配置,跟练动画本身不需要插件</li>
+              <li>每章末的「IDE 差异」栏,VSCode 列提到的设置都能在 <kbd>Cmd</kbd><kbd>,</kbd> 里搜到</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>同样建议用独立项目或 Scratch 文件当靶场(<kbd>Cmd</kbd><kbd>Shift</kbd><kbd>n</kbd> 新建 Scratch)</li>
+              <li>IdeaVim 的安装在 第 1 章 §2.2,配置文件是 <code>~/.ideavimrc</code>,改完可热加载</li>
+              <li>两个 IDE 都装也完全没问题,跟练时固定用一个,减少变量</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>要做的</th><th>怎么做</th><th>要做的</th><th>怎么做</th></tr></thead>
+          <tbody>
+            <tr><td>看演示</td><td>空格暂停 + ⏭ 单步,猜下一个键</td><td>记进度</td><td>章末勾「已读」</td></tr>
+            <tr><td>调速</td><td>右侧 1× / 2× / ½×</td><td>续学</td><td>首页进度条,第一个没勾的章</td></tr>
+            <tr><td>建靶场</td><td><code>~/vim-practice.txt</code> 粘几十行代码</td><td>学新键</td><td>每天 ≤5 个,当天 10 遍</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:别只读,去按;别贪多,每天五个。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="../index.html">← 返回目录</a>
+          <a href="ch01.html">第 1 章 · 生存篇:模式与 IDE 配置 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch00.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

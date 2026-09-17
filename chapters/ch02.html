@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 2 章 · 移动·字符与词 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch02" data-ch="ch02">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 02 · 移动篇 上</div>
+        <h1>字符与词:让光标飞起来</h1>
+        <div class="ch-meta-line">预计阅读 40 分钟(含练习约 1 小时)· 前置:第 1 章(模式与 <kbd class="escape">Esc</kbd>)· 本章演示 7 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>彻底<strong>戒掉方向键</strong>:<kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd> 成为手指的默认方向</li>
+          <li>按<strong>词</strong>移动:<kbd>w</kbd> <kbd>b</kbd> <kbd>e</kbd>,以及大词版 <kbd>W</kbd> <kbd>B</kbd> <kbd>E</kbd></li>
+          <li>行首行尾<strong>瞬移</strong>:<kbd>0</kbd> <kbd>^</kbd> <kbd>$</kbd> <kbd>g</kbd><kbd>_</kbd></li>
+          <li>行内<strong>直达任意字符</strong>:<kbd>f</kbd> <kbd>F</kbd> <kbd>t</kbd> <kbd>T</kbd> 与重复键 <kbd>;</kbd> <kbd>,</kbd></li>
+          <li>第一次体验「<strong>移动 = 动词的射程</strong>」:<kbd>d</kbd><kbd>t</kbd><kbd>,</kbd> 这样的组合句子</li>
+          <li>建立本章的物理学直觉:<strong>一行之内,任何位置两键可达</strong></li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 为什么专门用一章讲「移动」</h2>
+        <p>回忆第 1 章的论断:写代码的大部分时间不在打字,在<strong>读、跳、改</strong>。而「读和跳」的本质是同一件事 —— <strong>把光标送到目的地</strong>。移动是 Vim 里被使用频率最高的一类命令,没有之一;它也是后面一切的地基:第 5 章你会学到「删除的范围 = 移动的射程」,移动练不熟,编辑语言就永远说不利索。</p>
+        <p>方向键有三宗罪:</p>
+        <ul>
+          <li><strong>远</strong>:在键盘右下角,每次去够,右手都要离开主键区,回来时还得重新定位(手指一离位,盲打就断);</li>
+          <li><strong>慢</strong>:一次一格,从行首到第 40 列要按 39 次;</li>
+          <li><strong>破坏节奏</strong>:手的位置一变,眼睛就得离开屏幕确认一下 —— 每次半秒,一天几百次。</li>
+        </ul>
+        <p>本章的任务:让<strong>字符级</strong>移动(<kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd>)接管方向键的职责,再给你三层越来越快的跳法 —— <strong>按词</strong>、<strong>按行端</strong>、<strong>按字符直达</strong>。下一章再把战场扩大到整个文件(行与行之间的跳跃)。</p>
+        <p>先算一笔经济账。假设你每天在编辑器里做 300 次行内定位:鼠标方案 = 手离键盘 + 找指针 + 精确点击,平均 2.5 秒;方向键方案 = 平均 15 次按键 × 0.2 秒 = 3 秒,且右手来回搬家;本章的方案 = 平均 2 键 × 0.3 秒 ≈ 0.6 秒,手不离位、眼不离码。每天省下的十来分钟倒在其次,<strong>注意力不断线</strong>才是真正的收益 —— 光标听话之后,你才会开始「用移动思考」,而不是「用定位忍耐」。</p>
+
+        <h2>2. h j k l:主键区的方向键</h2>
+        <p>四个字母,画在键盘上正好是十字:</p>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>方向</th><th>记法</th><th>指法</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>h</kbd></td><td>← 左</td><td>十字最左</td><td>右手食指(从 <kbd>j</kbd> 左移一格)</td></tr>
+            <tr><td><kbd>j</kbd></td><td>↓ 下</td><td><strong>j 键上有小凸点</strong>,食指盲摸即知</td><td>右手食指 home 位</td></tr>
+            <tr><td><kbd>k</kbd></td><td>↑ 上</td><td>十字最上</td><td>右手中指</td></tr>
+            <tr><td><kbd>l</kbd></td><td>→ 右</td><td>十字最右</td><td>右手无名指</td></tr>
+          </tbody>
+        </table>
+
+        <div class="demo-slot" data-demo="ch02-01-hjkl"></div>
+
+        <p>注意演示里的<strong>计数前缀</strong>:先按 <kbd>3</kbd> 再按 <kbd>j</kbd>,一次跳三行。所有移动命令都吃数字前缀,这是 Vim「数格子交给机器」的第一课 —— <strong>永远不要连按 8 次 <kbd>l</kbd></strong>,要么 <kbd>8</kbd><kbd>l</kbd>,要么干脆用下面更聪明的跳法。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 指法要点</span>
+          右手食指永远「住」在 <kbd>j</kbd> 上(凸点就是家)。移动时只有手指动、手腕不动;如果你的手腕在键盘上平移,说明在「够」键 —— 那是旧习惯回来了。
+        </div>
+
+        <div class="callout tip">
+          <span class="co-title">💡 冷知识:为什么偏偏是 hjkl</span>
+          1976 年 vi 诞生在 ADM-3A 终端上,那台机器的键盘上 <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> 四个键位就<strong>印着方向箭头</strong> —— Bill Joy 不是选了这四个键,是那台机器根本没有独立方向键。顺带一提:同一张键盘上,<kbd class="escape">Esc</kbd> 就印在今天 <kbd>Tab</kbd> 的位置 —— 这解释了为什么 Vim 的「回家」键是 Esc:当年它近在咫尺。历史锁定了布局,肌肉把它变成了效率。
+        </div>
+
+        <p><strong>怎么练</strong>:不要专门「背」,而是给自己立一条规矩 —— <strong>接下来三天,方向键只准用于你还没学的场景</strong>(其实没有这种场景,所以等于禁用)。头半天会慢 30%,第二天追平,第三天开始反超。这是所有 Vim 学习者都走过的曲线,没有人例外。</p>
+
+        <h2>3. 词的三兄弟:w b e</h2>
+        <p>字符级移动是保底,真正的高频武器是<strong>词级</strong>。Vim 对「词」(word)的定义:连续的<strong>字母、数字、下划线</strong>算一个词;<strong>标点符号</strong>也各自成词 —— 连续的同类标点(比如 <code>)</code> 后面跟 <code>;</code> 不同类则分开,同类如 <code>==</code> 算一个)。听起来复杂,看一遍动画就懂:</p>
+
+        <div class="demo-slot" data-demo="ch02-02-w-b-e"></div>
+
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>含义</th><th>什么时候用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>w</kbd></td><td>下一个词的<strong>开头</strong></td><td>最常用的前进键,「去下一个变量」</td></tr>
+            <tr><td><kbd>b</kbd></td><td>上一个词的<strong>开头</strong>(back)</td><td>往回找,<kbd>w</kbd> 的镜像</td></tr>
+            <tr><td><kbd>e</kbd></td><td>当前/下一个词的<strong>结尾</strong>(end)</td><td>要去词尾做事时(词尾加后缀、看边界)</td></tr>
+            <tr><td><kbd>g</kbd><kbd>e</kbd></td><td>上一个词的<strong>结尾</strong></td><td>冷门但有用:倒着按词尾走</td></tr>
+          </tbody>
+        </table>
+
+        <p><strong>决策法</strong>:问自己「我要去的其实是<strong>词的开头还是结尾</strong>?」 —— 开头用 <kbd>w</kbd>/<kbd>b</kbd>,结尾用 <kbd>e</kbd>。比如把光标放到一个函数名的<strong>最后一个字母</strong>上准备加后缀,<kbd>e</kbd> 一步到位;而「从行中间快速往左回到行首方向」,<kbd>b</kbd><kbd>b</kbd><kbd>b</kbd> 比 <kbd>h</kbd>×10 优雅得多。</p>
+        <p>用一个真实场景把三兄弟串起来:你在检查一行老代码 <code>const total = price + tax;</code>,想知道 total 是从哪来的 —— 光标停在行首,连按 <kbd>w</kbd> 逐个标识符「点名」;发现要看 price 的结尾有没有后缀,<kbd>f</kbd><kbd>p</kbd> 直达后再 <kbd>e</kbd> 落在词尾;看完想回头核对 total,<kbd>b</kbd><kbd>b</kbd><kbd>b</kbd>(或 <kbd>F</kbd><kbd>t</kbd> 更快,下一节)。整个过程眼睛没离开过代码,手没离开过主键区 —— 这就是「用移动思考」的雏形。</p>
+        <p>至于词边界的精确规则,记住三条就够日常用了:①<code>字母 / 数字 / 下划线</code>互相粘连算一词(<code>data_dir</code> 是一个词);②标点<em>同类</em>粘连算一词(<code>==</code>、<code>::</code>、<code>-&gt;</code> 各算一个);③字母和标点之间<strong>永远是边界</strong>(<code>a,b</code> 是三个词:a、逗号、b)。不确定的时候,在靶场里按 <kbd>w</kbd> 走一遍,眼睛会替你归纳 —— 比背规则快。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 心法</span>
+          读代码时让眼睛当导航:「下一个标识符」= <kbd>w</kbd>;「刚才那个词是啥」= <kbd>b</kbd>。移动键的正确率,就是你对「词边界」的直觉本身。
+        </div>
+
+        <h2>4. 大词:W B E</h2>
+        <p>「小词」把每个标点都当成独立单位,在代码里有时太碎 —— <code>parse(data_dir,</code> 里 <kbd>w</kbd> 要踩四五脚。<strong>大词(WORD)</strong>的定义粗暴得多:<strong>空白符(空格 / Tab)分隔的一切</strong>。于是 URL、路径、<code>file.txt</code>、<code>a=&gt;b</code> 这种整体都算一个 WORD:</p>
+
+        <div class="demo-slot" data-demo="ch02-03-W-vs-w"></div>
+
+        <table class="ktable">
+          <thead><tr><th>场景</th><th>用小写(w/b/e)</th><th>用大写(W/B/E)</th></tr></thead>
+          <tbody>
+            <tr><td>逐个变量、逐个符号地看</td><td>✅ 精细</td><td>跳太快</td></tr>
+            <tr><td>跨过 <code>foo(bar,</code> 这种粘连片段</td><td>要踩好几脚</td><td>✅ 一步跨过</td></tr>
+            <tr><td>URL / 路径内部移动</td><td>✅ 按 <code>.</code> <code>/</code> 分段</td><td>整体一个词,一步出界</td></tr>
+          </tbody>
+        </table>
+
+        <p>一句话决策:<strong>想「逐个标识符」走用小写,想「大步跨过标点海洋」用大写</strong>。Shift 顺手就有,不用白不用。</p>
+        <p>两个高频例子帮你建立体感:①光标在 <code>https://example.com/api/v2</code> 的开头,想走到 <code>api</code>:小写 <kbd>w</kbd> 要踩过 <code>//</code>、<code>.</code>、<code>/</code> 一堆碎词,而大写 <kbd>W</kbd> 把整个 URL 当一个词,一步跳出界外再 <kbd>b</kbd> 回来反而快 —— 反过来,要在 URL <em>内部</em>按段走,就得用小写;②一行模板字符串里嵌了好几处 <code>${...}</code>,用 <kbd>W</kbd> 按空白大步跳过插值块,比小写碎步清爽得多。大小写的切换,本质是在<strong>粒度</strong>之间换挡。</p>
+
+        <h2>5. 行内瞬移:0 ^ $ g_</h2>
+        <p>四个键,两两成对:行首一对(<kbd>0</kbd> 绝对 / <kbd>^</kbd> 非空白),行尾一对(<kbd>$</kbd> 绝对 / <kbd>g</kbd><kbd>_</kbd> 非空白):</p>
+
+        <div class="demo-slot" data-demo="ch02-04-line-jump"></div>
+
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>落点</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>0</kbd>(数字零)</td><td>绝对行首,第 0 列</td><td>要去缩进前面;配合可视化模式(ch07)</td></tr>
+            <tr><td><kbd>^</kbd></td><td>第一个<strong>非空白</strong>字符</td><td><strong>代码里的"行首"</strong>:到行首改代码用它</td></tr>
+            <tr><td><kbd>$</kbd></td><td>行尾最后一个字符(含尾随空格)</td><td>快去行尾;<kbd>$</kbd> 后接 <kbd>a</kbd> = 手动版 <kbd>A</kbd></td></tr>
+            <tr><td><kbd>g</kbd><kbd>_</kbd></td><td>最后一个<strong>非空白</strong>字符</td><td>行尾有空格时,精确落在代码上</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout tip">
+          <span class="co-title">💡 最强助记:正则表达式</span>
+          <kbd>^</kbd> 和 <kbd>$</kbd> 正是正则里的<strong>行首 / 行尾锚点</strong> —— vi 的作者直接借用了当时的惯例。写过一行正则的人,这两个键一辈子不会再忘:<code>^const</code> 匹配行首的 const,而 Vim 里 <kbd>^</kbd> 就是「跳到行首(第一个真字符)」。
+        </div>
+
+        <div class="callout tip">
+          <span class="co-title">💡 和第 1 章的连接</span>
+          你已经会用 <kbd>A</kbd>(行尾插入)。现在拆开看:<kbd>A</kbd> = <kbd>$</kbd> + <kbd>a</kbd>。快捷键不过是「移动 + 落笔」的打包 —— Vim 里到处都是这种「组合vs打包」的对应关系,理解了组合,打包键才不是死记。
+        </div>
+
+        <p>代码场景里 <kbd>^</kbd> 的出场率远高于 <kbd>0</kbd>:大多数时候你要的是「这行代码从哪开始」,而不是「缩进前面那两个空格在哪」。什么时候才真需要 <kbd>0</kbd>?—— 要选中<strong>包含缩进</strong>的整行、或者检查缩进本身(空格还是 Tab、几个)的时候。一句话:<strong>看代码用 <kbd>^</kbd>,看排版用 <kbd>0</kbd></strong>。</p>
+
+        <h2>6. 行内直达:f F t T 与 ; ,</h2>
+        <p>本章最快的武器。<kbd>f</kbd>(find)后跟<strong>任意一个字符</strong>,光标直接送到本行下一处该字符上;<kbd>t</kbd>(till)则是送到目标<strong>前一格</strong>。大写 <kbd>F</kbd>/<kbd>T</kbd> 反向找。重复键 <kbd>;</kbd>/<kbd>,</kbd> 沿同一目标继续前进 / 后退:</p>
+
+        <div class="demo-slot" data-demo="ch02-05-f-t-semi"></div>
+
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>含义</th><th>什么时候用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>f</kbd>+字符</td><td>跳到本行下一处该字符<strong>上</strong></td><td>眼睛能看到目标行内的锚点字符</td></tr>
+            <tr><td><kbd>t</kbd>+字符</td><td>跳到该字符<strong>前一格</strong></td><td>目标是"字符之前的那段"(配合动词!)</td></tr>
+            <tr><td><kbd>F</kbd>/<kbd>T</kbd>+字符</td><td>同上,但<strong>往回</strong>找</td><td>目标在光标左边时</td></tr>
+            <tr><td><kbd>;</kbd> / <kbd>,</kbd></td><td>重复刚才的 f/t:<strong>下一处 / 上一处</strong></td><td>一行里有多个同名锚点(逗号、点号)</td></tr>
+        </tbody>
+        </table>
+
+        <div class="callout warn">
+          <span class="co-title">⚠️ f 和 /(第 8 章)的分工</span>
+          <kbd>f</kbd> 只在<strong>当前行内</strong>找,找不到就失败(光标不动,可能响一声铃);跨行查找是 <kbd>/</kbd> 的地盘,第 8 章讲。别用错工具。
+        </div>
+
+        <p>几个实战细节:①<strong>目标在左边</strong>就用大写 <kbd>F</kbd>/<kbd>T</kbd> 反向找,比 <kbd>b</kbd> 猜词更精确;②一行里有重复字符时,先 <kbd>f</kbd> 一次再用 <kbd>;</kbd> 踩点,<strong>别每次都重新按 <kbd>f</kbd>x</kbd> —— 重复键存在的意义就是把三键变一键;③<kbd>t</kbd> 平时看起来只是 <kbd>f</kbd> 的「差一格版」,但配合动词时这一格就是护城河(下一节),所以别嫌它多余;④按错字符?<kbd>f</kbd> 之后按 <kbd class="escape">Esc</kbd> 取消待决,或直接再按一次对的字符前先 <kbd>;</kbd> 会跳错 —— 习惯上,<kbd>f</kbd> 按错了就当无事发生,重新按就是,成本极低。</p>
+
+        <h2>7. 移动即射程:dt, 的第一次合体</h2>
+        <p>第 0 章预告过「动词 + 名词」。现在你手里的移动键,全都是现成的「名词」—— 给 <kbd>d</kbd>(删)当射程:</p>
+
+        <div class="demo-slot" data-demo="ch02-06-dt-comma"></div>
+
+        <p><kbd>d</kbd><kbd>t</kbd><kbd>,</kbd> = 「删,删到逗号前」。看懂这一步,你就看懂了 Vim 的核心机制:<strong>动词不自己带范围,范围由移动键给出</strong>。把 <kbd>t</kbd><kbd>,</kbd> 换成 <kbd>w</kbd> 就是删一个词,换成 <kbd>$</kbd> 就是删到行尾,换成 <kbd>f</kbd><kbd>;</kbd> 就是删到下一个分号 —— 动词不变,射程随便换。第 5 章会把这套语法讲全,这里先把「移动很值钱」这件事刻进手感里。</p>
+        <p>给你三个今天就能用的「射程三连」,在靶场里各做五遍找感觉:<kbd>d</kbd><kbd>w</kbd>(删掉光标往后一个词)、<kbd>d</kbd><kbd>$</kbd>(删到行尾,也可以按 <kbd>D</kbd> —— 打包版)、<kbd>d</kbd><kbd>f</kbd><kbd>;</kbd>(删到行内下一个分号,分号本身也删掉,和 <kbd>dt</kbd><kbd>,</kbd> 只差「含不含终点」)。不用记结论,按一遍、撤销一遍,手感自然形成 —— <kbd>u</kbd> 就是你的免费回放键。</p>
+
+        <h2>8. 行内组合拳:任何位置,两键以内</h2>
+        <p>把本章的键合起来用,会得到一个很爽的性质:<strong>一行之内,光标从任何位置到任何位置,最多两三键</strong>。原理:先用 <kbd>f</kbd>/<kbd>W</kbd>/<kbd>$</kbd>/<kbd>^</kbd> 做大跨度跳跃,再用 <kbd>w</kbd><kbd>e</kbd><kbd>h</kbd><kbd>l</kbd> 微调一格。</p>
+
+        <div class="demo-slot" data-demo="ch02-07-two-keys"></div>
+
+        <table class="ktable">
+          <thead><tr><th>目标在哪</th><th>首选</th><th>微调</th></tr></thead>
+          <tbody>
+            <tr><td>行首 / 行尾</td><td><kbd>^</kbd> / <kbd>$</kbd></td><td>—(一击必中)</td></tr>
+            <tr><td>行内某个<strong>显眼字符</strong>附近</td><td><kbd>f</kbd>+字符</td><td><kbd>h</kbd><kbd>l</kbd><kbd>w</kbd><kbd>b</kbd></td></tr>
+            <tr><td>下一个<strong>标识符</strong></td><td><kbd>w</kbd></td><td><kbd>e</kbd> 到词尾</td></tr>
+            <tr><td>跨过一段标点粘合物</td><td><kbd>W</kbd> / <kbd>B</kbd></td><td><kbd>;</kbd> 接力</td></tr>
+            <tr><td>同字符多处(逗号、点)</td><td><kbd>f</kbd>+字符</td><td><kbd>;</kbd><kbd>;</kbd> 踩点</td></tr>
+          </tbody>
+        </table>
+
+        <p>组合的心法只有一条:<strong>先粗后细</strong>。大跨度交给 <kbd>f</kbd>/<kbd>W</kbd>/<kbd>$</kbd>/<kbd>^</kbd>,落地后如果差一格半格,再用 <kbd>h</kbd><kbd>l</kbd><kbd>w</kbd><kbd>e</kbd> 微调。新手常见的顺序错误是反过来 —— 先一格一格挪到目标附近再犹豫 —— 那是方向键时代的肌肉记忆在作祟。练到后来,「两键到达」会变成一种条件反射:眼睛落在目标上的同时,手指已经出发。</p>
+
+        <h2>9. 一句话处理折行:gj gk</h2>
+        <p>如果编辑器开了软折行(wordWrap),一个逻辑行会折成多个屏幕行,此时 <kbd>j</kbd><kbd>k</kbd> 走的是<strong>逻辑行</strong>,<kbd>g</kbd><kbd>j</kbd> / <kbd>g</kbd><kbd>k</kbd> 走<strong>屏幕行</strong>。写代码推荐直接关掉折行(见本章 IDE 备注),需要时再记这对前缀键不迟。</p>
+
+        <h2>10. 每日训练计划(30 分钟 × 3 天)</h2>
+        <p>本章内容建议拆三天消化,别一口气练完:</p>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放 7 个演示(单步),读 §1–§4</td><td>能说出 w/b/e 各自落点</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1 + 练习 2:hjkl 盲走 + w/e/b 词表</td><td>全程不看键盘和手指</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>复习昨天的键,读 §5–§6</td><td>0/^/$/g_ 各落点张口就来</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 3:f 跳转游戏 + <kbd>;</kbd> 连踩</td><td>10 行代码不用方向键走完</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>读 §7–§8,重点体会 dt,</td><td>能自己造 3 个「动词+射程」句子</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:两键挑战 + 盲测</td><td>盲测 8/10,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>方向键退役</strong>:hjkl + 词级移动,手从此住进主键区;</li>
+          <li><strong>眼睛看哪,光标就去哪</strong>:看到锚点字符就 f 它,看到词就 w 它 —— 不数格子;</li>
+          <li><strong>移动就是射程</strong>:今天记住 <kbd>d</kbd><kbd>t</kbd><kbd>,</kbd> 这一个例子,第 5 章会还你一片森林。</li>
+        </ol>
+        <p>下一章把战场从「一行」扩大到「整个文件」:相对行号、<kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd>、段落跳跃、<kbd>%</kbd> 配对跳转 —— 光标开始在整个文件里飞。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:hjkl 盲走网格(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场文件里随便找一块 10 行左右的代码,右手放在 <kbd>j</kbd> 凸点上,<strong>眼睛只看屏幕</strong>,用 <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> 走出一个「口」字再走一个「之」字,最后走回起点。中途一旦手去摸方向键,从头再来。进阶:给自己计数,比如 <kbd>5</kbd><kbd>j</kbd><kbd>3</kbd><kbd>l</kbd>,一次到位。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:w / e / b 词表朗读(10 分钟)</summary>
+          <div class="answer">
+            <p>光标放到任意一行代码开头,连续 <kbd>w</kbd> 走到行尾,<strong>每按一次读出落点的标识符</strong>(不读标点也算过,读出来更好);再连续 <kbd>b</kbd> 走回行首;再 <kbd>e</kbd> 走一遍。三个键各走 10 行。你会自然记住「=、+、, 都是独立词」这个事实。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:f 跳转游戏 + ; 连踩(10 分钟)</summary>
+          <div class="answer">
+            <p>找一行有多个逗号/点号的代码(比如参数列表),光标行首:<kbd>f</kbd><kbd>,</kbd> 到第一个逗号,然后只用 <kbd>;</kbd> 踩到行尾、只用 <kbd>,</kbd> 走回行首。再换 <kbd>f</kbd><kbd>.</kbd>、<kbd>f</kbd><kbd>(</kbd> 各来一轮。要点:<kbd>;</kbd> 长在手边,别每跳一次都重新按 f。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:两键挑战 + 盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>让同事(或自己随机)指定行内某个字符作为目标,要求<strong>最多两键</strong>把光标放上去,做 20 组。然后闭眼完成序列:<kbd>^</kbd> → <kbd>f</kbd><kbd>;</kbd> → <kbd>;</kbd> → <kbd>e</kbd> → <kbd>$</kbd> → <kbd>b</kbd><kbd>b</kbd> → <kbd>0</kbd>,睁眼检查光标位置是否符合预期,10 组对 8 组毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 方向键复吸</span>
+          头三天手指会「想念」方向键,一着急就伸手 —— 每次伸手都是一次退步。物理疗法:知道 macOS 可以在系统设置里把方向键临时禁用吗?狠人可以试;普通人至少在心里记一笔「刚才又够了」。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 数格子上瘾</span>
+          <kbd>1</kbd><kbd>2</kbd><kbd>l</kbd> 这种精确数格子,说明还在用「字符思维」。代码里的目标是<strong>词和锚点字符</strong>,不是第 13 列:眼睛看到什么就用 <kbd>w</kbd>/<kbd>f</kbd> 去什么。计数前缀留给行数(下一章的 <kbd>5</kbd><kbd>j</kbd>)。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 在标点海洋里用 w 碎步</span>
+          <code>parse(data_dir,</code> 里连按 <kbd>w</kbd> 踩四脚,不是你笨,是用错档位 —— 换 <kbd>W</kbd> 一步跨过。记住:小写=精细档,大写=越野档。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 g_ 记不住就不记</span>
+          行尾 99% 的场景 <kbd>$</kbd> 够用;只有当行尾真有空白、且你要精确落在最后一个代码字符上时才需要 <kbd>g</kbd><kbd>_</kbd>。忘掉它,需要时回来查这张表。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>本章全部按键 VSCodeVim 原生支持,零额外配置</li>
+              <li>建议<strong>关闭软折行</strong>,让 j/k 保持逻辑行语义:设置搜 <code>editor.wordWrap</code> 设为 <code>off</code>(默认就是 off)</li>
+              <li><kbd>Cmd</kbd><kbd>←</kbd>/<kbd>→</kbd>(行首/行尾)依然可用,但既然学了 <kbd>^</kbd>/<kbd>$</kbd>,让它们退休</li>
+              <li>下一章要用相对行号:现在就可以把 <code>editor.lineNumbers</code> 设为 <code>relative</code>(第 1 章配置里已有)</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>IdeaVim 对本章按键同样全支持;<kbd>f</kbd> 查找还会有黄色高亮提示所有候选</li>
+              <li>软折行同理:建议 <code>Settings → Editor → General → Soft Wraps</code> 不勾选代码场景</li>
+              <li>开了折行的 Markdown 长段落,记得用 <kbd>g</kbd><kbd>j</kbd>/<kbd>g</kbd><kbd>k</kbd> 走屏幕行</li>
+              <li>相对行号在 <code>~/.ideavimrc</code> 里 <code>set relativenumber</code>(第 1 章配置已有,下一章讲为什么)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></td><td>左 下 上 右</td><td><kbd>0</kbd> / <kbd>^</kbd></td><td>行首 / 首个非空白</td></tr>
+            <tr><td><kbd>w</kbd> / <kbd>b</kbd> / <kbd>e</kbd></td><td>下一词头 / 上一词头 / 词尾</td><td><kbd>$</kbd> / <kbd>g</kbd><kbd>_</kbd></td><td>行尾 / 尾个非空白</td></tr>
+            <tr><td><kbd>W</kbd> <kbd>B</kbd> <kbd>E</kbd></td><td>大词版(空白分隔)</td><td><kbd>f</kbd>x / <kbd>t</kbd>x</td><td>到字符 x / 到 x 前一格</td></tr>
+            <tr><td><kbd>3</kbd><kbd>j</kbd> 等</td><td>数字前缀 = 一次跳 N 格</td><td><kbd>;</kbd> / <kbd>,</kbd></td><td>重复 f/t:下一处 / 上一处</td></tr>
+            <tr><td><kbd>g</kbd><kbd>j</kbd> / <kbd>g</kbd><kbd>k</kbd></td><td>屏幕行上下(折行时)</td><td><kbd>d</kbd><kbd>t</kbd><kbd>,</kbd></td><td>删到逗号前(射程预告)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:眼睛看到哪,光标就去哪 —— 词用 w,锚点用 f,行端用 0^$。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch01.html">← 第 1 章 · 生存篇</a>
+          <a href="ch03.html">第 3 章 · 移动·行与文件 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch02.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

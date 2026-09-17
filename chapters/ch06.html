@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 6 章 · 插入与替换模式 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch06" data-ch="ch06">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 06 · 语法篇 下</div>
+        <h1>插入与替换模式:打字这最后一公里</h1>
+        <div class="ch-meta-line">预计阅读 30 分钟(含练习约 1 小时)· 前置:第 1、5 章 · 本章演示 5 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>把<strong>进入插入模式的全部姿势</strong>变成选型本能:<kbd>i</kbd> <kbd>a</kbd> <kbd>I</kbd> <kbd>A</kbd> <kbd>o</kbd> <kbd>O</kbd> + 第 5 章的 <kbd>C</kbd> <kbd>S</kbd> <kbd>s</kbd>,外加本章新主角 <kbd>g</kbd><kbd>i</kbd></li>
+          <li>掌握<strong>从哪进、从哪出</strong>的节奏感:进入点选对了,Esc 之后的落点才顺</li>
+          <li>学会<strong>插入模式内的编辑键</strong>:打错不用逃出去 —— <kbd>Ctrl</kbd>+<kbd>w</kbd> 删词、<kbd>Ctrl</kbd>+<kbd>u</kbd> 清行、<kbd>Ctrl</kbd>+<kbd>t</kbd>/<kbd>d</kbd> 调缩进、<kbd>Ctrl</kbd>+<kbd>o</kbd> 发单发子弹</li>
+          <li>掌握<strong>替换模式 <kbd>R</kbd></strong>:原位覆写,与 <kbd>r</kbd>、<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 的分工</li>
+          <li>建立「<strong>打字前先选门</strong>」的习惯:同一个意图永远走同一扇门,肌肉记忆才能沉淀</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 插入模式不是休息区</h2>
+        <p><a href="ch01.html">第 1 章</a>教你用 <kbd>i</kbd> 进、<kbd>Esc</kbd> 出活了下来;<a href="ch05.html">第 5 章</a>的 <kbd>c</kbd> 家族让「删完就打」一句话说完。现在把镜头对准插入模式本身 —— 一个被严重低估的地方。多数人的使用画像:不管三七二十一 <kbd>i</kbd> 进去,打字,发现光标位置不对,在插入模式里用方向键挪,打错词用退格键一格一格吃回去,打完再 <kbd>Esc</kbd>。全程插入模式像个「休息区」:进了就躺平,所有精细操作都退化成原始人的打字机操作。</p>
+        <p>正确的画像应该反过来:插入模式是一次<strong>有预定座位的短途通勤</strong> —— 上车前你就知道坐在哪(进入姿势)、坐多久(打完就走)、中途要办什么事(插入模式内的编辑键)。衡量 Vim 功底的隐性指标之一,就是<strong>单次插入的平均停留时长</strong>:高手打十个字符就出来,新手一进去半分钟不出来 —— 因为把移动、改错、调整缩进全塞进了打字里。本章的任务就是把这段「最后一公里」也优化掉。</p>
+        <p>先立一个总原则:<strong>打字前先选门</strong>。进入插入模式有十扇门,每扇门对应一种意图。选错门的代价是「进了再找位置」—— 用方向键或空格在插入模式里挪光标,那是全 Vim 最亏的按键。门的清单见下一节,先把心态摆正:门的选型不是知识,是要练成条件反射的习惯。</p>
+
+        <h2>2. 十扇门全景:按意图选门</h2>
+        <p>进入插入模式的键,你已经见过的有九个,本章补上第十个(<kbd>g</kbd><kbd>i</kbd>)。逐个背没有意义,<strong>按意图分组</strong>一张表收走:</p>
+        <table class="ktable">
+          <thead><tr><th>意图</th><th>按键</th><th>进入点</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">原地插</td><td><kbd>i</kbd></td><td>光标<em>前</em></td><td>在行中间补一个词</td></tr>
+            <tr><td><kbd>a</kbd></td><td>光标<em>后</em></td><td>紧贴某字符后面追加(光标在引号上时进引号内)</td></tr>
+            <tr><td rowspan="2">行两端</td><td><kbd>I</kbd></td><td>本行第一个非空白字符前</td><td>补 <code>const</code>、加行首注释 —— <strong>自动跳过缩进</strong></td></tr>
+            <tr><td><kbd>A</kbd></td><td>行尾(最后一个字符后)</td><td>补分号、行尾追加 —— <strong>不用肉眼找行尾</strong></td></tr>
+            <tr><td rowspan="2">开新行</td><td><kbd>o</kbd></td><td>下方新行,缩进自动</td><td>往列表/参数里加下一项</td></tr>
+            <tr><td><kbd>O</kbd></td><td>上方新行,缩进自动</td><td>往列表头部插一项、函数上方加注释</td></tr>
+            <tr><td rowspan="2">清范围再打</td><td><kbd>C</kbd> / <kbd>c</kbd><kbd>$</kbd></td><td>删到行尾后</td><td>重新赋值(第 5 章)</td></tr>
+            <tr><td><kbd>S</kbd> / <kbd>c</kbd><kbd>c</kbd></td><td>整行清空后</td><td>整行重写(第 5 章)</td></tr>
+            <tr><td>回上次插入点</td><td><kbd>g</kbd><kbd>i</kbd></td><td>上次离开插入模式处</td><td>续写刚才没打完的话(本章新朋友)</td></tr>
+            <tr><td>覆写不打</td><td><kbd>R</kbd></td><td>原地,打一个盖一个</td><td>替换模式,严格说是「第十一种模式」(§8)</td></tr>
+          </tbody>
+        </table>
+        <p>读表的方式不是「背按键」,是反过来:<strong>每次按之前,先在脑子里报意图</strong> ——「我要在行尾补东西」→ <kbd>A</kbd>;「我要在下面加一项」→ <kbd>o</kbd>。前两周刻意为之,之后意图会直接变成手指动作。这张表同时是第 5 章 <kbd>c</kbd> 家族的复习:<kbd>C</kbd>、<kbd>S</kbd> 与 <kbd>A</kbd>、<kbd>I</kbd> 是同一家族的两代 —— 都是「动词 + 进入点」的打包键,只不过前者先删一段,后者只定位。</p>
+
+        <h2>3. I 与 A:行两端的体贴</h2>
+        <p>小写 <kbd>i</kbd>/<kbd>a</kbd> 只管光标前后一格;大写 <kbd>I</kbd>/<kbd>A</kbd> 管<strong>逻辑上的行首和行尾</strong>。它们的体贴藏在细节里:<kbd>I</kbd> 落在第一个<strong>非空白</strong>字符前(缩进自动跳过),<kbd>A</kbd> 落在最后一个字符后(哪怕行尾看不见):</p>
+
+        <div class="demo-slot" data-demo="ch06-01-I-A"></div>
+
+        <p>对比一下小写的尴尬:光标停在一行中间,想往行首补 <code>const</code>,按 <kbd>i</kbd>?它插在光标前 —— 不是行首。先 <kbd>0</kbd> 再 <kbd>i</kbd>?插在第 0 列的缩进空格<strong>前面</strong>,打完 <code>const </code> 还得手动补对齐。<kbd>I</kbd> 把这两步糊涂账一次算清。<kbd>A</kbd> 同理 = <kbd>$</kbd> + <kbd>a</kbd> 的打包(第 5 章讲过这个打包家族),补分号场景里它是无可争议的王者。日常代码里<strong>行尾追加</strong>的频率远高于行中插入,所以 <kbd>A</kbd> 大概率会成为你按得最多的大写键。</p>
+
+        <h2>4. o 与 O:新行的两个方向</h2>
+        <p>想在数组里加个元素、在 import 块里加一行、在函数头上加注释 —— 这些场景的共同点是「新起一行打字」。传统编辑器按 End 再回车(还得手动缩进);Vim 给了专用门:<kbd>o</kbd>(open)在下方开新行,<kbd>O</kbd> 在上方开新行,<strong>缩进自动对齐</strong>:</p>
+
+        <div class="demo-slot" data-demo="ch06-02-o-O"></div>
+
+        <p>体会演示里最爽的部分:新行的缩进是<strong>猜出来的</strong> —— 根据上一行(或下一行)的缩进和 IDE 的语言规则自动带好,你只管打内容。在 IDE 里这一点更明显:VSCode 和 IDEA 的智能缩进(VSCodeVim/IdeaVim 都接管了 <kbd>o</kbd>/<kbd>O</kbd>)比裸 Vim 的 <code>autoindent</code> 聪明得多,打 <code>}</code> 还会自动回弹一级。<kbd>O</kbd> 最闪光的地方是「头部插入」:往数组<strong>第一项前面</strong>、函数<strong>第一行上面</strong>插内容,传统做法要把光标挪到顶再想办法,而 <kbd>O</kbd> 在任何位置都是两键。</p>
+        <p>一个必须提前打的预防针:<kbd>o</kbd>/<kbd>O</kbd> 是<strong>开新行</strong>,不是「复制上一行」—— 把 <kbd>o</kbd> 当复制用是新手常见误解(复制行是 <kbd>y</kbd><kbd>y</kbd> + <kbd>p</kbd>,第 5 章)。另外 <kbd>o</kbd> 顺手吃计数:<kbd>3</kbd><kbd>o</kbd> 开三行 —— 但连续空行不如 <kbd>3</kbd><kbd>o</kbd> + <kbd>Esc</kbd> 后统一处理,知道即可。</p>
+
+        <h2>5. gi:回到上次打字的地方</h2>
+        <p>一个高频到被忽视的场景:你正在打一段长注释/长字符串,<kbd>Esc</kbd> 出去核实个函数名、查个拼写,回来想<strong>接着刚才的地方继续打</strong>。<kbd>g</kbd><kbd>i</kbd> = go to last insert —— 直达上次离开插入模式的位置,<strong>而且直接带着插入模式回来</strong>:</p>
+
+        <div class="demo-slot" data-demo="ch06-03-gi"></div>
+
+        <p><kbd>g</kbd><kbd>i</kbd> 的底层是 <kbd>^</kbd> 标记(注意:这是「插入标记」,和第 2 章行首的 <kbd>^</kbd> 同形不同物,这里的 <kbd>^</kbd> 是「上次插入点」的代号,Vim 里叫 <code>'^</code>)。不进插入、只把光标<strong>移</strong>到上次插入点的话,按 <kbd>'</kbd><kbd>^</kbd> 或 <kbd>g</kbd><kbd>^</kbd>。实战中记 <kbd>g</kbd><kbd>i</kbd> 一个就够 —— 因为「回去」的意图 90% 是续写。它和第 3 章的书签 <kbd>'</kbd><kbd>a</kbd> 分工明确:书签是你<strong>手动设</strong>的存档点,<kbd>g</kbd><kbd>i</kbd> 是系统<strong>自动维护</strong>的「上次工地」。写长注释、填一堆表单式代码(配置文件、测试用例)时,「打一段 → Esc 去看 → <kbd>g</kbd><kbd>i</kbd> 续写」的循环会让手感明显变顺。</p>
+
+        <h2>6. 插入模式内的小剪刀:Ctrl-w、Ctrl-u、Ctrl-t</h2>
+        <p>打错词的第一反应是什么?多数人是退格键按住不放 —— 一格一格吃到错处,再重打。更糟的选择是 <kbd>Esc</kbd> 回普通模式用 <kbd>d</kbd><kbd>b</kbd> —— 为了一个词换模式,得不偿失。正确答案:插入模式<strong>自带编辑键</strong>,其中最常用三把小剪刀:</p>
+
+        <div class="demo-slot" data-demo="ch06-04-insert-keys"></div>
+
+        <table class="ktable">
+          <thead><tr><th>按键(插入模式内)</th><th>作用</th><th>普通模式里的等价物</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>w</kbd></td><td>删掉光标前一个词(空格留下)</td><td><kbd>b</kbd> + <kbd>d</kbd><kbd>w</kbd> 的即时版</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>u</kbd></td><td>清空本行(本次插入的内容)</td><td><kbd>d</kbd><kbd>d</kbd> 再 <kbd>O</kbd>?不用了,就地重来</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>t</kbd> / <kbd>Ctrl</kbd>+<kbd>d</kbd></td><td>本行右移 / 左移一级缩进</td><td><kbd>&gt;</kbd><kbd>&gt;</kbd> / <kbd>&lt;</kbd><kbd>&lt;</kbd> 的就地版</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>h</kbd></td><td>退格一格(等于退格键)</td><td>—(手小拇指懒得挪时用)</td></tr>
+          </tbody>
+        </table>
+        <p>值得单独强调 <kbd>Ctrl</kbd>+<kbd>w</kbd> 的哲学:它删词但<strong>留下空格</strong> —— 和第 5 章 <kbd>c</kbd><kbd>w</kbd> 不吃尾部空格是同一个设计:你在打字,排版应该自动保持正确。练到「打错词 → <kbd>Ctrl</kbd>+<kbd>w</kbd> → 重打」不假思索,你的插入模式停留时长会再降一截。<kbd>Ctrl</kbd>+<kbd>u</kbd> 则是「这行打歪了」的止损键 —— 整行重来比修修补补快时,果断用它。至于 <kbd>Ctrl</kbd>+<kbd>t</kbd>/<kbd>d</kbd>,记一个场景就够:写了半行发现「这行该缩进一级」,<kbd>Ctrl</kbd>+<kbd>t</kbd> 就地解决,不用 <kbd>Esc</kbd> 出去按 <kbd>&gt;</kbd><kbd>&gt;</kbd> 再回来。</p>
+
+        <h2>7. Ctrl-o:插入模式里发一颗普通模式子弹</h2>
+        <p>还有一类尴尬:正在插入模式里打字,想<strong>顺手干一件普通模式的小事</strong> —— 看一眼行号、把屏幕滚一下、跳到行首 —— 但这事不值得换模式。插入模式里的 <kbd>Ctrl</kbd>+<kbd>o</kbd> 专治:按下去后可以执行<strong>一个</strong>普通模式命令,执行完<strong>自动弹回插入模式</strong>,光标还回到刚才打字的地方。常见搭配:</p>
+        <table class="ktable">
+          <thead><tr><th>组合</th><th>意思</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>o</kbd> <kbd>z</kbd><kbd>z</kbd></td><td>打着字把当前行滚到屏幕中央(长函数里写码必备)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>o</kbd> <kbd>g</kbd><kbd>^</kbd></td><td>瞄一眼上次插入点的位置</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>o</kbd> <kbd>:</kbd><kbd>n</kbd><kbd>u</kbd><kbd>m</kbd></td><td>临时开个行号/设置看看(命令也算一颗子弹)</td></tr>
+          </tbody>
+        </table>
+        <p>注意<strong>同名不同物</strong>的陷阱:第 3 章的 <kbd>Ctrl</kbd>+<kbd>o</kbd> 是<strong>普通模式</strong>下的「跳转表后退」,本章的是<strong>插入模式</strong>下的「单发子弹」—— 同一个键,模式不同含义完全不同。这正是 Vim「模式即上下文」的又一次现身:看一个键干什么,先问自己在哪个模式。单发子弹的边界也要知道:它只适合<strong>不移动光标</strong>或移动后无所谓的命令(滚动、设置类);想「跳到行尾看看再回来接着打」这种带位移的,老老实实 <kbd>Esc</kbd> → 干活 → <kbd>g</kbd><kbd>i</kbd>,两个工具各守各的边界。</p>
+
+        <h2>8. 替换模式 R:打一个盖一个</h2>
+        <p>最后一位主角。<kbd>r</kbd> 换一个字符(第 5 章),但换<strong>一串等长的字符</strong>时逐个 <kbd>r</kbd> 很蠢 —— 该用替换模式:<kbd>R</kbd> 进入后,状态栏变 <code>REPLACE</code>,此后打的每个字符<strong>原位覆盖</strong>旧字符,光标随打随走,直到 <kbd>Esc</kbd>:</p>
+
+        <div class="demo-slot" data-demo="ch06-05-R"></div>
+
+        <p><kbd>R</kbd> 的甜蜜区是<strong>等长改写</strong>:<code>insert</code> → <code>visual</code>(6→6)、<code>margin</code> → <code>padding</code>(6→7,尾部多一个字符会顺成插入,少一个会留尾巴)、对齐表格、改日志级别 <code>INFO</code> → <code>WARN</code>。长度不齐时它就露怯了 —— 后面的演示专门展示了「只打一半」的后果,感受一下覆写的机械性。所以三件换字符工具的选型口诀是:<strong>r 换一个,R 覆一串(等长),ciw 换整词(随便多长)</strong>。前两个不进(或瞬间离开)普通节奏,第三个要进插入模式 —— 按破坏半径和长度差选工具。</p>
+        <p>两个边界提醒:①替换模式里按退格是<strong>撤回</strong>刚覆写的字符(恢复原字符),不是删掉它 —— 和插入模式的退格方向相反,玩一下就懂;②到行尾后再打字,行为自动变为<strong>追加</strong>(相当于 <kbd>A</kbd>)—— 毕竟没有字符可盖了。中文/全角字符在 <kbd>R</kbd> 下按「字符」覆盖,一个全角算一个位置,中英混排的表格慎用。</p>
+
+        <h2>9. 实战节奏:把十扇门串成一次编辑</h2>
+        <p>本章没有综合大演示,因为真正的综合演出你在第 5 章毕业考里看过 —— 这里只把本章的零件放进一个日常剧本,纸面推演一遍。任务:一段配置代码,要①补漏的 <code>const</code> ②给第二行补分号 ③往数组尾部加一个元素 ④回头把刚加的元素改个名。按本章思路走:</p>
+        <ol>
+          <li>第一行任意位置 → <kbd>I</kbd> 进门跳过缩进 → <code>const </code> → <kbd>Esc</kbd>;</li>
+          <li><kbd>j</kbd> 到第二行 → <kbd>A</kbd> 直达行尾 → <code>;</code> → <kbd>Esc</kbd>;</li>
+          <li>光标挪到数组最后一项 → <kbd>o</kbd> 下方开新行(缩进已对好)→ 打元素名 → <kbd>Esc</kbd>;</li>
+          <li>发现名字打错了 → <kbd>g</kbd><kbd>i</kbd> 回到刚才的插入点 → <kbd>Ctrl</kbd>+<kbd>w</kbd> 删错词 → 重打 → <kbd>Esc</kbd>。</li>
+        </ol>
+        <p>数一数:四次进出插入模式,每次进门都<strong>落点即工位</strong>,没有一个方向键、没有一次退格长按、没有一次「进去之后再找位置」。这就是本章要的手感 —— 插入模式的效率不在于打字快,在于<strong>进出零损耗</strong>。顺带预告:第 4 步这种「换个词再重来」的重复劳作,第 10 章的 <kbd>.</kbd> 重复键会给出更狠的解法,这里先把门修好。</p>
+
+        <h2>10. 每日训练计划(30 分钟 × 3 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1–2,读 §1–§4;靶场里 I/A/o/O 各 10 次(故意把光标放行中间起手)</td><td>进门即落点,不用方向键找位置</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1 + 练习 2</td><td>A 补分号 20 行不卡壳</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 3–4,读 §5–§7;靶场打长注释,Esc 查东西后 <kbd>g</kbd><kbd>i</kbd> 续写</td><td><kbd>Ctrl</kbd>+<kbd>w</kbd> 改词不看键盘</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 3</td><td>三种换字工具选型不犹豫</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>重放演示 5,读 §8–§9;把 §2 的十扇门表抄进便签</td><td>能背出按意图分组的门</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:盲测毕业考</td><td>10 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>打字前先选门</strong>:原地 <kbd>i</kbd>/<kbd>a</kbd>、两端 <kbd>I</kbd>/<kbd>A</kbd>、新行 <kbd>o</kbd>/<kbd>O</kbd>、清范围 <kbd>C</kbd>/<kbd>S</kbd>、续写 <kbd>g</kbd><kbd>i</kbd> —— 意图决定门,进门即工位;</li>
+          <li><strong>打错不逃门</strong>:插入模式自带剪刀 —— <kbd>Ctrl</kbd>+<kbd>w</kbd> 删词、<kbd>Ctrl</kbd>+<kbd>u</kbd> 清行、<kbd>Ctrl</kbd>+<kbd>t</kbd>/<kbd>d</kbd> 调缩进、<kbd>Ctrl</kbd>+<kbd>o</kbd> 发单发子弹(注意与普通模式跳转表后退同名不同义);</li>
+          <li><strong>换字符按半径选工具</strong>:一个 <kbd>r</kbd>、一串等长 <kbd>R</kbd>(覆写,不是插入)、整词 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> —— 长度不齐就别用 R。</li>
+        </ol>
+        <p>至此,「语法篇」三章全部完成:名词(移动 + 文本对象)、动词、进出打字的门 —— 编辑语言的基本词汇和句法已经齐了。下一章进入进阶篇:可视化模式与块编辑,把「选」这个动作也纳入语言。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:十扇门点名(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场任选 20 行代码,光标随机放置,每行完成一次「报意图 → 按门」:心里默念「行尾补」→ <kbd>A</kbd>;「下加一行」→ <kbd>o</kbd>;「行首补」→ <kbd>I</kbd>;「上方插」→ <kbd>O</kbd>…… 进门后随便打两个字,<kbd>Esc</kbd> 出来,<kbd>u</kbd> 撤销。20 次为一组。通过线:报意图和按键之间零延迟,且落点全部正确(尤其 <kbd>I</kbd> 不落在缩进空格里)。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:A 补分号马拉松 + o 扩数组(10 分钟)</summary>
+          <div class="answer">
+            <p>造 20 行没有分号的代码(或拿一段冒号写成等号的任务代替),只用 <kbd>A</kbd> → <code>;</code> → <kbd>Esc</kbd> → <kbd>j</kbd> 循环补完 —— 感受「进门即工位」的节奏,禁止用方向键或 End。然后再造一个数组,分别用 <kbd>o</kbd> 往尾部加 5 个元素、用 <kbd>O</kbd> 往头部加 2 个元素,体会两个方向的对称。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:打错不逃门(10 分钟)</summary>
+          <div class="answer">
+            <p>在插入模式里连续打十句话(代码注释或散文都行),规则:打错词必须用 <kbd>Ctrl</kbd>+<kbd>w</kbd> 修正、打歪行必须用 <kbd>Ctrl</kbd>+<kbd>u</kbd> 重来,<strong>全程禁用退格键和 Esc</strong>。中途想看屏幕外的东西用 <kbd>Ctrl</kbd>+<kbd>o</kbd> <kbd>z</kbd><kbd>z</kbd> 滚一下屏幕。这个练习会别扭十分钟,但之后插入模式在你手里就从「打字机」升级成「工作台」了。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>10 个任务先说按键再看答案:①在带缩进的行首补 <code>const</code> ②行尾补分号 ③数组末尾加一项 ④数组开头插一项 ⑤回上次没打完的地方续写 ⑥插入模式里删掉刚打的词 ⑦本次插入的整行作废重打 ⑧插入模式里把本行右移一级缩进 ⑨把 <code>INFO</code> 改成 <code>WARN</code>(提示:长度)⑩把 <code>mode</code> 改成 <code>model</code>(提示:长度变了,别用 R)。答案:<kbd>I</kbd>/<kbd>A</kbd>/<kbd>o</kbd>/<kbd>O</kbd>/<kbd>g</kbd><kbd>i</kbd>/<kbd>Ctrl</kbd>+<kbd>w</kbd>/<kbd>Ctrl</kbd>+<kbd>u</kbd>/<kbd>Ctrl</kbd>+<kbd>t</kbd>/<kbd>R</kbd>(等长覆写)/<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd>(R 会吃掉后面的字符)。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 用小写 i 硬闯行首/行尾</span>
+          光标在行中间按 <kbd>i</kbd>,然后一路空格空到想要的位置 —— 或者先 <kbd>0</kbd> 再 <kbd>i</kbd>,结果插进了缩进空格里。行两端有专用门:<kbd>I</kbd> 跳过缩进落在第一个真字符前,<kbd>A</kbd> 直贴行尾。自检:如果插入模式里你在用空格或方向键「找位置」,说明进门时选错了门。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 Esc 想退出,却只是关掉了补全弹窗</span>
+          IDE 的自动补全弹出时,<kbd>Esc</kbd> 的第一职责是<strong>关闭建议列表</strong>(VSCodeVim 和 IdeaVim 都如此),再按一次才退出插入模式 —— 于是常见「按一下 Esc 没出去,慌了再乱按」。预期管理:弹窗开着就按两下;或者养成用 <kbd>Tab</kbd>/<kbd>Enter</kbd> 接受建议的习惯,让 <kbd>Esc</kbd> 专职退出。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 R 用完忘了出来</span>
+          <kbd>R</kbd> 覆写很爽,爽到忘记自己还在替换模式 —— 继续打字一路盖掉后面所有内容,等发现时半行没了。两个保险:①盯状态栏,<code>REPLACE</code> 亮着就保持警惕;②覆写完立刻 <kbd>Esc</kbd>,把 R 当「冲刺」用,不当「巡航」用。真盖坏了也别慌,<kbd>u</kbd> 一键全回。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 在插入模式里用方向键和鼠标挪光标</span>
+          这是插入模式效率的第一杀手:手离开主键区、节奏中断、还得重新定位。正确姿势:小挪用 <kbd>Ctrl</kbd>+<kbd>o</kbd> 发子弹或干脆 <kbd>Esc</kbd> → 用第 2、3 章的移动 → <kbd>g</kbd><kbd>i</kbd>/<kbd>i</kbd> 回来。判断标准很简单:如果你的方向键开始发烫,插入模式的用法就该回炉本章了。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>十扇门 + <kbd>Ctrl</kbd>+<kbd>w</kbd>/<kbd>u</kbd>/<kbd>t</kbd>/<kbd>d</kbd> + <kbd>g</kbd><kbd>i</kbd> + <kbd>R</kbd>:VSCodeVim 全部原生支持,照本章内容用即可</li>
+              <li><kbd>o</kbd>/<kbd>O</kbd> 的自动缩进走 VSCode 的 <code>editor.autoIndent</code>(默认 full)—— 比裸 Vim 聪明,打 <code>}</code> 自动回弹也在线</li>
+              <li>自动补全与 <kbd>Esc</kbd>:弹窗开着时 <kbd>Esc</kbd> 先关建议、再按才退插入;建议用 <kbd>Tab</kbd> 接受、继续打字忽略,让 <kbd>Esc</kbd> 语义单一</li>
+              <li>插入模式内 <kbd>Ctrl</kbd>+<kbd>o</kbd> 单发子弹:VSCodeVim 支持(如 <kbd>Ctrl</kbd>+<kbd>o</kbd> <kbd>z</kbd><kbd>z</kbd> 可用);个别 IDE 快捷键冲突时以 Keyboard Shortcuts 实测为准</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>同样全部支持;<kbd>o</kbd>/<kbd>O</kbd> 缩进取 IDEA 的 Code Style 引擎,嵌套块的自动缩进甚至更准</li>
+              <li>mac 注意:<kbd>Cmd</kbd>+<kbd>W</kbd> 是<strong>关闭标签页</strong>(IDEA 原生),Vim 的删词是 <kbd>Ctrl</kbd>+<kbd>w</kbd>(半角 Ctrl)—— 手别快,两个键差一个 Cmd</li>
+              <li>补全弹窗与 <kbd>Esc</kbd> 的关系同 VSCode:先关弹窗再退插入;用 <kbd>Tab</kbd>/<kbd>Enter</kbd> 接受建议</li>
+              <li><kbd>R</kbd> 替换模式由 IdeaVim 提供(IDEA 原生没有 overtype 模式),行为与 Vim 一致;插入模式内的 <kbd>Ctrl</kbd> 系小剪刀同理</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>I</kbd> / <kbd>A</kbd></td><td>行首(跳缩进)/ 行尾进入插入</td><td><kbd>Ctrl</kbd>+<kbd>w</kbd> / <kbd>Ctrl</kbd>+<kbd>u</kbd></td><td>插入内删词 / 清行</td></tr>
+            <tr><td><kbd>o</kbd> / <kbd>O</kbd></td><td>下方 / 上方开新行(缩进自动)</td><td><kbd>Ctrl</kbd>+<kbd>t</kbd> / <kbd>Ctrl</kbd>+<kbd>d</kbd></td><td>插入内右移 / 左移缩进</td></tr>
+            <tr><td><kbd>g</kbd><kbd>i</kbd></td><td>回上次插入点续写</td><td><kbd>Ctrl</kbd>+<kbd>o</kbd>(插入内)</td><td>发一颗普通模式子弹</td></tr>
+            <tr><td><kbd>R</kbd></td><td>替换模式:打一个盖一个</td><td><kbd>r</kbd> / <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd></td><td>换单个 / 换整词(R 的边界)</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>退出(弹窗开着时按两次)</td><td><kbd>'</kbd><kbd>^</kbd></td><td>只移动到上次插入点(不进插入)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:打字前先选门(进门即工位),打错不逃门(Ctrl-w / Ctrl-u),换字符看半径(r / R / ciw)。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch05.html">← 第 5 章 · 编辑动词与语法</a>
+          <a href="ch07.html">第 7 章 · 可视化模式与块编辑 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch06.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

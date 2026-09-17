@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 9 章 · 寄存器与剪贴板 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch09" data-ch="ch09">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 09 · 进阶篇 下</div>
+        <h1>寄存器与剪贴板:复制为什么会被删除顶掉</h1>
+        <div class="ch-meta-line">预计阅读 25 分钟(含练习约 1 小时)· 前置:第 5 章 · 本章演示 5 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>解开 Vim 最著名的「bug」:<strong>yy 复制 → dd 删除 → p 粘出来的是被删的行</strong>,并练成 <code>"0p</code> 肌肉自救</li>
+          <li>建立<strong>寄存器 = 一排抽屉</strong>的心智模型:无名、数字、命名、只读、黑洞、系统剪贴板,各类的「谁写它、拿来干嘛」一张表认清</li>
+          <li>掌握<strong>命名寄存器 <code>"a-"z</code></strong> 与大写追加(<code>"A</code>)—— 收集散落内容、为第 10 章宏打前站</li>
+          <li>学会<strong>黑洞寄存器 <code>"_</code></strong>:删除不污染,「复制保真」的第二条路</li>
+          <li>打通<strong>系统剪贴板 <code>"+</code></strong>:vim 与微信/浏览器/IDE 之间自由搬运,并了解两边的自动打通配置</li>
+          <li>会用 <code>:reg</code> 查看寄存器内容,丢失前先看清单</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 一个「bug」引出的一章</h2>
+        <p>每个 Vim 用户都撞过这堵墙:用 <kbd>y</kbd><kbd>y</kbd> 复制了一行,顺手 <kbd>d</kbd><kbd>d</kbd> 删掉一行不要的,然后 <kbd>p</kbd> 想粘贴 —— 粘出来的是<strong>刚删掉的那行</strong>,复制的东西像被偷走了。第一次遇到的人几乎都以为是 bug,或者以为是自己按错了,重试一遍,还是删掉的行。</p>
+        <p>这不是 bug,是 Vim 剪贴板模型的必然结果,看懂它就看懂了整章:<strong>Vim 的默认粘贴源叫「无名寄存器」,它只有一个坑,而 y(复制)和 d(删除)<strong>都往这个坑里写</strong></strong>。你复制了 title,又删了 note —— 坑里现在是 note,因为后来的写把先来的顶掉了。Vim 这样设计有自己的道理(删除即「剪切」,随手粘贴刚删的内容本来就是高频操作),但代价就是「复制」不设防。</p>
+        <p>值得花一分钟体会这个设计的来龙去脉。Vim 的世界里「删掉一段、马上贴到别处」(挪动)是重构里最高频的动作,于是删除顺理成章地承担了「剪切」的职责 —— 默认不设防换来的是挪动零成本。而真正的「复制后待用」,Vim 给了专门保险柜("0)和一排手动抽屉("a-"z):它不是没有解决方案,而是把「默认通道留给最高频的动作」。理解了这层取舍,你就不会再纠结「为什么默认这么坑」,而是记住本章的主旋律:<strong>默认通道跑高频,重要内容走保险</strong>。</p>
+
+        <div class="demo-slot" data-demo="ch09-01-yank-delete-trap"></div>
+
+        <p>解药在演示的结尾:<code>"0p</code> —— 从 0 号寄存器取。<strong>0 号寄存器是 yank 的专属保险柜</strong>:每次 <kbd>y</kbd> 复制,内容同时写入无名寄存器和 <code>"0</code>;而 <kbd>d</kbd> 只写无名寄存器,碰不到 <code>"0</code>。所以「复制完删了点东西,现在要粘贴刚才复制的」的完整答案永远是 <code>"0p</code>。这一章的任务就是把这个坑认识全,顺便打开它的兄弟姐妹 —— 一共 48 个左右。</p>
+
+        <h2>2. 心智模型:一排抽屉,各有分工</h2>
+        <p>寄存器(register)就是 Vim 内部的多格剪贴板。<strong>普通编辑器只有一格</strong>(系统剪贴板),复制新内容顶掉旧内容;Vim 有一排抽屉,每格有名字、有分工、有写入规则。总表先认脸,后面逐个开柜:</p>
+        <table class="ktable">
+          <thead><tr><th>类别</th><th>名字</th><th>谁写它</th><th>拿来干嘛</th></tr></thead>
+          <tbody>
+            <tr><td>无名寄存器</td><td><code>""</code></td><td><kbd>y</kbd> <kbd>d</kbd> <kbd>c</kbd> <kbd>s</kbd> <kbd>x</kbd> —— 所有复制删除<strong>默认</strong>都写它</td><td>默认粘贴源;一个坑,后来者顶掉先来者</td></tr>
+            <tr><td>yank 保险柜</td><td><code>"0</code></td><td><strong>只有 y</strong> 写它(与 "" 同步各存一份)</td><td><code>"0p</code> 复制保真的标准答案</td></tr>
+            <tr><td>数字删除梯</td><td><code>"1</code>–<code>"9</code></td><td>整行/多行删除依次入 <code>"1</code>,旧内容向后顺延</td><td>后悔药:取回前几刀删掉的内容</td></tr>
+            <tr><td>行内小件</td><td><code>"-</code></td><td>不足一行的删除(<kbd>x</kbd> <kbd>dw</kbd> 等)</td><td>小件删除也有存档,很少手动取</td></tr>
+            <tr><td>命名抽屉</td><td><code>"a</code>–<code>"z</code></td><td><strong>只有你</strong>显式写(<code>"ayy</code>)</td><td>手动行李箱:存住重要内容随便折腾;大写追加</td></tr>
+            <tr><td>只读三件</td><td><code>".</code> <code>":</code> <code>"%</code></td><td>Vim 自动维护</td><td>最近插入文本 / 最近命令 / 当前文件名</td></tr>
+            <tr><td>黑洞</td><td><code>"_</code></td><td>只有你显式写(<code>"_d</code>)</td><td>纯删除不留档 —— 保护无名寄存器不被污染</td></tr>
+            <tr><td>系统剪贴板</td><td><code>"+</code> <code>"*</code></td><td>你显式写,或与系统共享</td><td>与 IDE/浏览器/微信 互通</td></tr>
+          </tbody>
+        </table>
+        <p>读表的正确姿势不是背,是回答三个问题:①<strong>谁有权写</strong>(默认写?只有 y 写?只有我写?谁都不写?)②<strong>会不会被顶掉</strong>③<strong>什么时候值得指名取</strong>。日常 95% 的场景只用三格:<code>""</code>(默认)、<code>"0</code>(保真粘贴)、<code>"+</code>(对外搬运);但「命名抽屉 + 黑洞」这两个主动技能,用会上瘾。</p>
+        <p>用一个重构下午的场景把表激活:你正在改一个函数 —— <kbd>y</kbd><kbd>y</kbd> 复制了签名准备参考,顺手 <kbd>d</kbd><kbd>d</kbd> 删了三行废代码(<code>""</code> 被顶了三次,但 <code>"0</code> 里签名还在);又想把函数里某个待办事项挪到周报里,<code>"a</code><kbd>y</kbd><kbd>y</kbd> 存进 a 抽屉;继续删删改改(传送带 <code>"1</code>-<code>"9</code> 记着你的删除史);最后 <code>"0</code><kbd>p</kbd> 贴出签名比对,<code>"+</code><kbd>y</kbd><kbd>y</kbd> 把结论发进聊天工具。整个下午,你其实一直在寄存器之间调度 —— 只是以前不知道,现在知道了,调度就变成了主动的。</p>
+
+        <h2>3. 无名寄存器 "":默认的公共坑</h2>
+        <p>先把这个最熟的坑说透。<kbd>d</kbd> <kbd>c</kbd> <kbd>s</kbd> <kbd>x</kbd> <kbd>y</kbd> 全部默认写 <code>""</code>(两个双引号)—— 这意味着 Vim 里「删除」其实全是「剪切」。这个设计的好处真实存在:改代码时大量操作是「把这段挪走」,删完立刻 <kbd>p</kbd> 贴到别处,零额外按键。坏处你也见识了:它对「复制」不设防。所以给一条使用纪律:</p>
+        <p><strong>纪律:复制了打算待会儿用的东西,中间又必须删内容时 —— 要么粘贴前想一句「粘谁」,要么删除时就地隔离(黑洞,§6)。</strong>注意 <code>""</code> 里按<strong>行/字符</strong>分开粘贴行为:整行复制粘贴自动落在上/下方(第 7 章 <kbd>V</kbd> 的伏笔),字符复制粘贴从光标后接上 —— 这个形状语义第 5 章讲过,寄存器只是仓库,形状跟着内容走。顺带复习 <kbd>P</kbd>(大写):粘到光标<strong>前</strong>/当前行<strong>上</strong> —— <kbd>p</kbd> 与 <kbd>P</kbd> 的选择,看你想让新内容落在锚点的前面还是后面;交换两字符的 <kbd>x</kbd><kbd>p</kbd>、交换两行的 <kbd>d</kbd><kbd>d</kbd><kbd>P</kbd>,都是这个形状语义的应用(第 5 章的老朋友)。</p>
+
+        <h2>4. "0 与数字梯 "1-"9:保险柜与传送带</h2>
+        <p>两个「自动保险」系统。0 号是 yank 保险柜(§1 已讲),数字梯是删除史传送带:</p>
+
+        <div class="demo-slot" data-demo="ch09-05-reg-view"></div>
+
+        <p>规则一句话:<strong>每次行级删除,新内容进 <code>"1</code>,原 <code>"1</code>–<code>"8</code> 依次后移一位</strong>(<code>"9</code> 掉出传送带消失)。所以 <code>"1p</code> 永远是「最近一刀」,<code>"2p</code> 是倒数第二刀 —— 演示里三连删之后用 <code>"2p</code> 取回了中间那刀。不足一行的删除(<kbd>x</kbd>、<kbd>d</kbd><kbd>w</kbd>)不占传送带,进 <code>"-</code> 小件柜。<code>:reg</code> 随时打开全柜清单 —— 「刚才删的东西还能找回来吗?」这个问题,先 <code>:reg</code> 再回答。</p>
+        <p>两个「保险柜」的分工容易混,记一组对照就清:<strong><code>"0</code> 是复制的保险柜,<code>"1</code> 是删除的最近档</strong> —— y 永远不进数字梯,d 永远不碰 "0。所以「粘我刚复制的」→ "0p;「粘我上一刀删的」→ "1p(其实直接 <kbd>p</kbd> 就是它,<code>"1p</code> 的价值在于连删几刀后取历史)。一个数字冷知识:行级删除只有<strong>不指定寄存器</strong>时才走传送带,<code>"a</code><kbd>d</kbd><kbd>d</kbd> 删进 a 抽屉的内容不会占据 <code>"1</code> —— 指定抽屉的操作完全绕开自动系统,这就是 Vim 寄存器「显式优先于隐式」的统一哲学。</p>
+
+        <h2>5. 命名寄存器 "a-"z:你的手动行李箱</h2>
+        <p>26 个抽屉 <code>"a</code>–<code>"z</code>,规则极简:<strong>只有你显式指名时才读写</strong>,其他任何操作不碰它们。语法是「前缀 <kbd>"</kbd> + 名字 + 动词」:<code>"a</code><kbd>y</kbd><kbd>y</kbd> 复制进 a、<code>"b</code><kbd>d</kbd><kbd>d</kbd> 删除进 b、<code>"a</code><kbd>p</kbd> 从 a 取。它的价值在于<strong>「存住,随便折腾」</strong>:</p>
+
+        <div class="demo-slot" data-demo="ch09-02-named-append"></div>
+
+        <p>演示里的「收集散落各行」是经典用法:写周报挑重点行、重构时归拢同主题代码。大写字母是追加开关:<code>"A</code><kbd>y</kbd><kbd>y</kbd> 往 a 抽屉<strong>追加</strong>而不是覆盖 —— 抽屉变成购物车。这里埋一颗重要的种子:<strong>第 10 章的宏就存在命名寄存器里</strong>(<kbd>q</kbd><kbd>a</kbd> 录制 = 往 a 写按键序列,<kbd>@</kbd><kbd>a</kbd> 执行 = 从 a 读),所以「前缀 + 名字」的手感现在练熟,宏那章直接白捡。</p>
+        <p>抽屉的使用习惯也值得立两条:①<strong>一屉一用</strong> —— 给 a 固定安排「当前任务收集」、给 b 安排「常用代码片段」,位置稳定,肌肉记忆才有意义;终端 Vim 里抽屉内容关掉重开也还在(shada/viminfo 负责持久化),但 IDE 插件对寄存器的跨会话保留行为不一 —— 重要内容别指望隔夜,当天用完当天清:塞满杂物的抽屉等于没有抽屉,定期用 <code>"a</code><kbd>y</kbd><kbd>y</kbd> 覆盖重置即可。②<strong>追加注意形状</strong> —— 行级追加行、字符追加字符,混着追加会在粘贴时得到奇怪的拼接,收集场景统一用行级(yy/dd)最稳。</p>
+
+        <h2>6. 黑洞 "_ 与只读三件</h2>
+        <p>黑洞寄存器 <code>"_</code> 解决「删除污染」的另一头:<strong>把删除的内容扔进一个谁也读不到的地方</strong> —— 纯删除,不留档、不顶任何抽屉:</p>
+
+        <div class="demo-slot" data-demo="ch09-03-blackhole"></div>
+
+        <p>使用场景一句话概括:<strong>刚复制了东西,接下来要删的内容都是垃圾</strong> —— <code>"_</code><kbd>d</kbd><kbd>d</kbd>、<code>"_</code><kbd>d</kbd><kbd>i</kbd><kbd>w</kbd> 批量清理,清完 <kbd>p</kbd> 依然粘出你的宝贝。它和 <code>"0p</code> 是同一问题的两个解法:前者在<strong>删除时</strong>隔离,后者在<strong>粘贴时</strong>取保险柜 —— 黑洞更从容(不用记粘贴时换键),<code>"0p</code> 更普适(忘了隔离也能救)。都要会。</p>
+        <p>只读三件顺路认识:<code>".</code> 存最近一次插入模式敲的文本(想再贴一遍刚打的一段字,插入模式里 <kbd>Ctrl</kbd>+<kbd>r</kbd><kbd>.</kbd>);<code>":</code> 存最近一条命令;<code>"%</code> 存当前文件名(写 <code>:e %:h</code> 之类命令时有用)。它们只读,写不进去,当系统提供的三个小便利贴即可。</p>
+
+        <h2>7. 系统剪贴板 "+ 与 "*:对外口岸</h2>
+        <p>Vim 世界与系统剪贴板之间有两个口岸:<code>"+</code>(selection clipboard 的「主口岸」)和 <code>"*</code>。macOS 上两者等价;Linux 图形环境下 <code>"*</code> 是「鼠标选中即复制」的 primary selection,<code>"+</code> 才是传统剪贴板 —— 跨平台开发时知道这个区别能省很多困惑。用法照旧是前缀语法:</p>
+
+        <div class="demo-slot" data-demo="ch09-04-clipboard"></div>
+
+        <p>在 IDE 里这条通道尤其宽松:VSCodeVim 和 IdeaVim 都可以配置成<strong>默认互通</strong>(y/p 直接走系统剪贴板,配置见本章 IDE 备注)。互通有互通的代价:你的 vim 复制会顶掉系统剪贴板里网页复制的内容 —— 两条通道混成了一条。个人建议:<strong>默认不互通,需要对外时显式 <code>"+</code></strong> —— 按键多两下,换「vim 内部流转」与「对外搬运」互不干扰。当然高频对外搬运的人反向选择也合理,这是口味题,不是对错题。</p>
+        <p>展开说一句「双通道」哲学:不互通的配置下,你其实握着<strong>两条独立的剪贴板</strong> —— vim 寄存器集群跑内部流转(改代码、挪内容,快进快出),系统剪贴板跑对外交互(微信、浏览器、issue)。两条通道各干各的,谁也不顶谁:从网页复制一段代码,随手在 vim 里 y 了别的东西,再 <code>"+</code><kbd>p</kbd> —— 网页那段还在。互通配置则把两条通道焊死成一条,少按两键,但「刚才网页复制的被我的 y 顶了」这类事故也从此常驻。想清楚自己哪类操作更频繁,选择自然就有了。</p>
+
+        <h2>8. :reg 与两个小入口</h2>
+        <p><code>:reg</code>(registers)打开全部抽屉的清单:每个名字 + 内容摘要,按回车关闭。丢东西了先看它;想确认 <code>"a</code> 里存的什么也看它。两个顺手的补充:①清单里只显示有内容的抽屉,空的不占屏;②<code>:reg a</code> 只看指定的几个(<code>:reg a b 0</code>)。取内容的入口不止 <kbd>p</kbd>:插入模式里 <kbd>Ctrl</kbd>+<kbd>r</kbd> + 名字,把抽屉内容「打」进当前文本(比如 <kbd>Ctrl</kbd>+<kbd>r</kbd><kbd>%</kbd> 插入文件名)—— 写文档、拼命令时极顺手。</p>
+
+        <h2>9. 决策表:复制粘贴的完整攻略</h2>
+        <p>把全章收敛成一张「遇到什么,按什么」:</p>
+        <table class="ktable">
+          <thead><tr><th>场景</th><th>标准动作</th><th>原理</th></tr></thead>
+          <tbody>
+            <tr><td>复制了、没删过东西、现在粘贴</td><td><kbd>p</kbd></td><td>无名寄存器还是复制的内容</td></tr>
+            <tr><td>复制后删过东西,要粘【刚删的】(挪动)</td><td><kbd>p</kbd></td><td>删除=剪切,本来就是它</td></tr>
+            <tr><td>复制后删过东西,要粘【之前复制的】</td><td><code>"0p</code></td><td>0 号是 yank 保险柜</td></tr>
+            <tr><td>要删垃圾,但待会儿还要粘贴刚复制的</td><td><code>"_d…</code>(黑洞删)</td><td>删除不顶无名寄存器</td></tr>
+            <tr><td>存几样东西,中间大量复制删除</td><td><code>"ay…</code> 存,<code>"ap</code> 取</td><td>命名抽屉不被动</td></tr>
+            <tr><td>收集散落的多行</td><td><code>"Ayy</code> 逐行追加</td><td>大写=追加模式</td></tr>
+            <tr><td>找回收删掉的东西</td><td><code>:reg</code> 查看,<code>"1p</code>/<code>"2p</code> 取</td><td>数字梯存最近 9 刀</td></tr>
+            <tr><td>与浏览器/微信/同事传代码</td><td><code>"+y…</code> / <code>"+p</code></td><td>系统剪贴板口岸</td></tr>
+          </tbody>
+        </table>
+
+        <h2>10. 每日训练计划(30 分钟 × 2 天 + 复习)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1、5,读 §1–§4;靶场复现陷阱 5 遍(yy→dd→p→u→"0p)</td><td>"0p 不假思索</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1 + 练习 3</td><td>黑洞与 "0p 两条路都走得顺</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 2、4,读 §5–§8;"ayy/"Ayy/"ap 三连打 10 组</td><td>前缀语法不看键盘</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 2 + 练习 4</td><td>盲测 10 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>复制会被删除顶掉,不是 bug</strong>:无名寄存器一个坑,y 和 d 都写 —— 粘「之前复制的」用 <code>"0p</code>(yank 保险柜);</li>
+          <li><strong>主动技能两个</strong>:命名抽屉 <code>"a…</code> 存住随便折腾(大写追加,宏的预备课),黑洞 <code>"_d…</code> 删除不污染;</li>
+          <li><strong>对外走 <code>"+</code>,对内走默认</strong>:系统剪贴板是口岸不是主场;丢了东西先 <code>:reg</code> —— 数字梯里存着最近 9 刀。</li>
+        </ol>
+        <p>内容能存取了,「重复劳动」还差最后一块拼图:第 10 章的撤销、<kbd>.</kbd> 重复与宏 —— 而宏,就寄存在你刚练熟的命名抽屉里。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:陷阱复现与自救(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场 5 组,每组:①<kbd>y</kbd><kbd>y</kbd> 复制一行 ②<kbd>j</kbd> 到下一行 <kbd>d</kbd><kbd>d</kbd> 删除 ③<kbd>p</kbd> 观察粘出的是删掉的行 ④<kbd>u</kbd> 撤销 ⑤<code>"0p</code> 粘出真正复制的行 ⑥两次 <kbd>u</kbd> 回到原状。通过线:第③步能<strong>提前说出</strong>会粘出什么,第⑤步不需要回想按键。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:行李箱收集(10 分钟)</summary>
+          <div class="answer">
+            <p>一段 ≥15 行代码,任务是收集其中 3 行散落的重点行:①<code>"a</code><kbd>y</kbd><kbd>y</kbd> 存第一行;②中间做 3 次无关的 <kbd>y</kbd>/<kbd>d</kbd> 操作(污染无名寄存器);③<code>"A</code><kbd>y</kbd><kbd>y</kbd> 追加第二行、再去第三行同样追加;④文件末尾 <kbd>o</kbd> 开新行 <kbd>Esc</kbd>,<code>"a</code><kbd>p</kbd> 取出三行。验证:取出的顺序与收集顺序一致,中间的污染操作没有影响任何内容。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:黑洞隔离对照实验(10 分钟)</summary>
+          <div class="answer">
+            <p>两遍对照:A 遍:<kbd>y</kbd><kbd>i</kbd><kbd>w</kbd> 复制一个词 → 到垃圾行 <kbd>d</kbd><kbd>d</kbd> → <kbd>p</kbd>,亲眼看粘出垃圾行 → <code>"0p</code> 才是对的。B 遍:同样 <kbd>y</kbd><kbd>i</kbd><kbd>w</kbd> → <code>"_</code><kbd>d</kbd><kbd>d</kbd> 黑洞删 → <kbd>p</kbd> 直接粘出正确的词。各 5 遍。通过线:两种场景(先污染后救 / 一开始就隔离)都不用想超过一秒。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>10 题先说答案再看:①yy 后 dd,p 粘出谁的内容?②粘「之前 yank 的」怎么按?③把当前行复制进 a 抽屉 ④把当前行【追加】进 a 抽屉 ⑤从 a 取出粘贴 ⑥删除但不污染无名寄存器 ⑦复制当前行到系统剪贴板 ⑧查看所有寄存器 ⑨最近一次删除存在哪个寄存器?⑩倒数第二刀删除怎么取回?答案:dd 的 / "0p / "ayy / "Ayy / "ap / "_dd(或 "_dw 等) / "+yy / :reg / "1 / "2p。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 复制被删除顶掉,以为 Vim 有 bug</span>
+          这是本章整章的由来,也是新手流失点第一名。三条纪律任选其一养成:①复制后要粘贴前,中间的删除一律 <code>"_</code> 黑洞化;②粘贴前默想「无名里现在是谁」,复制的内容用 <code>"0p</code> 兜底;③重要内容一开始就 <code>"a</code> 存抽屉。三条殊途同归:<strong>别裸奔着穿过「复制-删除-粘贴」的雷区</strong>。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 连删几刀后,"1p 出来的不是想要的那刀</span>
+          数字寄存器是<strong>传送带</strong>:每删一刀,所有格子向后顺延 —— <code>"1</code> 永远是最近一刀,你惦记的那刀可能已经在 <code>"2</code> <code>"3</code> 了。别猜,<code>:reg</code> 打开清单看一眼,指名取。另外注意:不足一行的删除(<kbd>x</kbd> <kbd>d</kbd><kbd>w</kbd>)不占传送带,别在数字梯里找它们(在 <code>"-</code>)。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 "* 与 "+ 分不清(跨平台坑)</span>
+          macOS 上两个都指向系统剪贴板,随便用;Linux X11 下 <code>"*</code> 是「鼠标划选即复制」的 primary selection,<code>"+</code> 才是 Ctrl-c/Ctrl-v 的剪贴板 —— 远程开发、容器、WSL 里行为还会再变。经验法则:<strong>写教程、写脚本统一用 <code>"+</code></strong>,行为最一致;IDE 里则建议直接用 IDE 的 Cmd-c/Cmd-v(见下条)。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 开了「默认互通」,内部流转反而乱了</span>
+          配置 y/p 直通系统剪贴板(<code>vim.useSystemClipboard</code> / <code>set clipboard+=unnamed</code>)很方便,但代价:①vim 里每次复制都会顶掉系统剪贴板(刚从网页 Cmd-c 的东西没了);②yank-then-delete 陷阱的战场从 vim 内部搬到系统层,一样存在。高频对外选互通,高频内部选隔离 + 显式 <code>"+</code> —— 两种都试一周再定,别只看教程默认值。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>寄存器系统 VSCodeVim 完整实现:<code>"0p</code>、<code>"a…</code>、<code>"_…</code>、<code>:reg</code> 全部照本章用</li>
+              <li>系统剪贴板:①显式通道 <code>"+y</code>/<code>"+p</code> 可用;②可视模式里 <kbd>Cmd</kbd>+<kbd>c</kbd>/<kbd>Cmd</kbd>+<kbd>v</kbd> 直通系统;③设置 <code>"vim.useSystemClipboard": true</code> 让 y/p 默认互通(取舍见陷阱四)</li>
+              <li>VSCode 原生的复制粘贴(<kbd>Cmd</kbd>+<kbd>c</kbd>/<kbd>v</kbd>,插入模式或无模式选中时)与 vim 寄存器是两套体系,互不干扰 —— 这其实是天然的「内部/对外」双通道</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>寄存器同样完整支持;<code>:reg</code> 清单由 IdeaVim 自绘,内容与 IDEA 的剪贴板历史(⌘⇧V 粘贴历史弹窗)分开存</li>
+              <li>系统剪贴板:显式 <code>"+</code> 可用;自动互通写 <code>.ideavimrc</code>:<code>set clipboard+=unnamed</code>(推荐放第 12 章的配置全文里一起定夺)</li>
+              <li>IDEA 特有福利:<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> 打开<strong>粘贴历史</strong>(最近 N 条系统复制),相当于把系统剪贴板也做成了一排抽屉 —— 与 vim 数字梯互补</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>按键 / 命令</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>""</code>(无名)</td><td>默认粘贴源,y/d 都写(一个坑)</td><td><code>"0p</code></td><td>取 yank 保险柜 —— 复制保真</td></tr>
+            <tr><td><code>"1</code>–<code>"9</code></td><td>删除传送带(最近 9 刀)</td><td><code>"-</code></td><td>行内小件删除存档</td></tr>
+            <tr><td><code>"a</code><kbd>y</kbd><kbd>y</kbd> / <code>"a</code><kbd>p</kbd></td><td>存入 a 抽屉 / 从 a 取</td><td><code>"A</code>…</td><td>大写 = 追加不覆盖</td></tr>
+            <tr><td><code>"_d…</code></td><td>黑洞:纯删除不污染</td><td><code>"+y…</code> / <code>"+p</code></td><td>系统剪贴板进出</td></tr>
+            <tr><td><code>:reg</code></td><td>查看全部抽屉清单</td><td><code>".</code> <code>":</code> <code>"%</code></td><td>只读:最近插入/命令/文件名</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:复制会被删除顶掉("0p 保真),要主动就用抽屉("a 存 "A 追)与黑洞("_ 删),对外走 "+,丢了先 :reg。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch08.html">← 第 8 章 · 查找与替换</a>
+          <span class="disabled">第 10 章 · 撤销、重复与宏(敬请期待)</span>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch09.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

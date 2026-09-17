@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 1 章 · 生存篇:模式与 IDE 配置 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch01" data-ch="ch01">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 01 · 生存篇</div>
+        <h1>模式与 IDE 配置:今天就能活下来</h1>
+        <div class="ch-meta-line">预计阅读 45 分钟(含练习约 1 小时)· 前置:无,零基础可读 · 本章演示 7 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>理解「模式」是 Vim 与其他编辑器的<strong>根本区别</strong>,而不是一个别扭的怪癖</li>
+          <li>在 <strong>VSCode</strong> 和 <strong>IntelliJ IDEA</strong> 里装好 Vim 插件,并确认它真的在工作</li>
+          <li>掌握生存最小集:<kbd>i</kbd> <kbd>a</kbd> <kbd>I</kbd> <kbd>A</kbd> <kbd class="escape">Esc</kbd> <kbd>x</kbd> <kbd>d</kbd><kbd>d</kbd> <kbd>o</kbd> <kbd>u</kbd> <kbd>:</kbd><kbd>w</kbd><kbd>q</kbd></li>
+          <li>建立全教程最重要的习惯:<strong>普通模式是家</strong>,插入模式只是出差</li>
+          <li>学会正确的 <kbd class="escape">Esc</kbd> 指法,知道每天怎么热身</li>
+          <li>学会使用本站的动画演示(播放 / 单步 / 调速 / 单步回看)</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 为什么 Vim 长这样:模式</h2>
+
+        <h3>1.1 一切从「你的时间花在哪」说起</h3>
+        <p>回想一下你昨天写代码的两小时:真正在<strong>输入新代码</strong>的时间有多少?大部分时间其实花在<strong>读</strong>(上下滚动、找人)、<strong>跳</strong>(去第 38 行改个参数、去函数结尾加一行)、<strong>改</strong>(换个变量名、删半行、补个分号)上。输入只是众多动作里的一种,而且往往是最短的那一种。</p>
+        <p>你用过的编辑器几乎都按「打字机」设计:键盘的唯一职责是往光标处塞字符,于是「改」这件事被拆成了 —— 拿鼠标选中之、按退格删掉之、再打字补上之;手在键盘和鼠标之间来回奔波,眼睛跟着光标满屏找。</p>
+        <p>Vim(1991 年 Bram Moolenaar 发布,前身是 1976 年的 vi)赌了另一个方向:<strong>把键盘一分为二</strong> ——</p>
+        <ul>
+          <li><strong>普通模式(NORMAL)</strong>:一副操纵杆。每个键都是命令 —— 移动、删除、复制、跳转,手不离主键区,眼睛不离代码;</li>
+          <li><strong>插入模式(INSERT)</strong>:一台打字机。只有在这里,打的字才是字。</li>
+        </ul>
+        <p>四十年过去,这套赌注赢了:今天你在 VSCode、IDEA、Chrome、甚至 Gmail 里都能找到 Vim 键位插件。它不是「老古董的固执」,而是被反复验证过的编辑模型。</p>
+
+        <h3>1.2 直观感受:同一件事的两种做法</h3>
+        <table class="ktable">
+          <thead><tr><th>场景</th><th>传统做法</th><th>Vim 做法</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>删掉一行</td>
+              <td>手挪到鼠标 → 点行首 → 拖到行尾 → 删除(或 <kbd>Cmd</kbd><kbd>L</kbd> 整行选中再删)</td>
+              <td><kbd>d</kbd><kbd>d</kbd>,两个键,手没动</td>
+            </tr>
+            <tr>
+              <td>行尾补个分号</td>
+              <td><kbd>→</kbd> 按到底(或 <kbd>Cmd</kbd><kbd>→</kbd>)再输入</td>
+              <td><kbd>A</kbd>,输入,完事</td>
+            </tr>
+            <tr>
+              <td>改一个单词</td>
+              <td>双击选中 → 删除 → 重新输入</td>
+              <td>本章之后你还会学到 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 三个键直接「改这个词」(第 4 章)</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>注意第三行:Vim 的动作读起来像<strong>一句话</strong> ——「change inner word(改 内部 词)」。这不是巧合,而是设计:Vim 是一门微型的编辑语言,<strong>动词 + 名词</strong>拼出无穷句子。本章先学最短的几个「单词」,第 4、5 章开始造句。</p>
+
+        <h3>1.3 一个键,两种人生</h3>
+        <p>模式带来的直接推论:<strong>同一个键,在不同模式下含义完全不同</strong>。这不是 Vim 难学的借口,而是它高效的原因 —— 字母键不用来拼命令(没有 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> 这种和弦),而是直接当按钮用:</p>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>插入模式里</th><th>普通模式里</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>d</kbd></td><td>输入字母 d</td><td><strong>删除</strong>动词,等待目标</td></tr>
+            <tr><td><kbd>x</kbd></td><td>输入字母 x</td><td>删掉光标处一个字符</td></tr>
+            <tr><td><kbd>o</kbd></td><td>输入字母 o</td><td>下方打开新行</td></tr>
+            <tr><td><kbd>u</kbd></td><td>输入字母 u</td><td>撤销上一个变更</td></tr>
+          </tbody>
+        </table>
+
+        <h3>1.4 模式地图</h3>
+        <p>四种常用模式的全景与切换路线如下 —— 任何模式按 <kbd class="escape">Esc</kbd> 都把你送回普通模式:</p>
+
+        <figure class="fig">
+          <div class="fig-canvas">
+            <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vim 模式切换地图">
+              <defs>
+                <marker id="fig-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path class="fig-arrowhead-path" d="M0,0 L8,4 L0,8 z"></path>
+                </marker>
+              </defs>
+              <!-- NORMAL(中心) -->
+              <rect class="fig-box fig-box-hot" x="290" y="30" width="180" height="68" rx="10"></rect>
+              <text class="fig-name" x="380" y="60" text-anchor="middle">NORMAL</text>
+              <text class="fig-sub" x="380" y="82" text-anchor="middle">操纵 · 跳转 · 家</text>
+              <!-- INSERT -->
+              <rect class="fig-box" x="560" y="30" width="170" height="68" rx="10"></rect>
+              <text class="fig-name" x="645" y="60" text-anchor="middle">INSERT</text>
+              <text class="fig-sub" x="645" y="82" text-anchor="middle">输入文本</text>
+              <!-- VISUAL -->
+              <rect class="fig-box" x="30" y="30" width="170" height="68" rx="10"></rect>
+              <text class="fig-name" x="115" y="60" text-anchor="middle">VISUAL</text>
+              <text class="fig-sub" x="115" y="82" text-anchor="middle">选择区域(第 7 章)</text>
+              <!-- CMDLINE -->
+              <rect class="fig-box" x="290" y="200" width="180" height="68" rx="10"></rect>
+              <text class="fig-name" x="380" y="230" text-anchor="middle">CMDLINE</text>
+              <text class="fig-sub" x="380" y="252" text-anchor="middle">: 命令(保存 / 替换)</text>
+              <!-- NORMAL <-> INSERT -->
+              <line class="fig-arrow" x1="470" y1="52" x2="560" y2="52"></line>
+              <text class="fig-key" x="515" y="44" text-anchor="middle">i a o …</text>
+              <line class="fig-arrow" x1="560" y1="76" x2="470" y2="76"></line>
+              <text class="fig-key" x="515" y="94" text-anchor="middle">Esc</text>
+              <!-- NORMAL <-> VISUAL -->
+              <line class="fig-arrow" x1="290" y1="52" x2="200" y2="52"></line>
+              <text class="fig-key" x="245" y="44" text-anchor="middle">v V C-v</text>
+              <line class="fig-arrow" x1="200" y1="76" x2="290" y2="76"></line>
+              <text class="fig-key" x="245" y="94" text-anchor="middle">Esc</text>
+              <!-- NORMAL <-> CMDLINE -->
+              <line class="fig-arrow" x1="350" y1="98" x2="350" y2="200"></line>
+              <text class="fig-key" x="338" y="153" text-anchor="end">:</text>
+              <line class="fig-arrow" x1="410" y1="200" x2="410" y2="98"></line>
+              <text class="fig-key" x="422" y="146" text-anchor="start">Enter</text>
+              <text class="fig-key" x="422" y="162" text-anchor="start">Esc</text>
+              <!-- 底注 -->
+              <text class="fig-sub" x="380" y="303" text-anchor="middle">任何模式按 Esc 都回 NORMAL —— 普通模式是家</text>
+            </svg>
+          </div>
+          <figcaption>图 1-1 · 模式切换地图。本章只用到 NORMAL ⇄ INSERT 和一条通往 CMDLINE 的路;VISUAL 在第 7 章等你</figcaption>
+        </figure>
+
+        <p>四种常用模式,一句话各自定位:</p>
+        <ul>
+          <li><span class="mode-badge mb-normal">NORMAL</span> 操纵与跳转的大本营,90% 的时间待在这里;</li>
+          <li><span class="mode-badge mb-insert">INSERT</span> 打字的出差模式,办完事就回;</li>
+          <li><span class="mode-badge mb-visual">VISUAL</span> 先选中、再操作 —— 你熟悉的「拖选」的模式版(第 7 章);</li>
+          <li><span class="mode-badge mb-cmd">CMDLINE</span> 屏幕底部的一条命令行:保存、替换、批量操作都从这里出发(第 8 章)。</li>
+        </ul>
+        <p>另外两种你现在不用管:<strong>替换模式</strong>(<kbd>R</kbd>,边打边覆写,第 6 章)和 <strong>Select 模式</strong>(很少用,VSCode/IdeaVim 里基本遇不到)。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 心法</span>
+          新手 90% 的痛苦是「不知道自己在哪个模式,按了键没反应或反应奇怪」。解药只有两味:盯着状态栏(插件会显示当前模式),以及 <strong>迷路就按 <kbd class="escape">Esc</kbd></strong> —— 按错模式里的键,最坏结果也就是多打了几个字,按几下退格就回来。
+        </div>
+
+        <h2>2. 五分钟装备你的 IDE</h2>
+        <p>本教程面向「在 IDE 里用 Vim」:你不需要换编辑器,不需要配终端,插件装完立刻可用。完整的推荐配置在第 12 章,现在这套最小集足够学完全书。</p>
+        <p><strong>先建个靶场</strong>:新建一个 <code>vim-practice.txt</code>(或 IDE 里的 Scratch 文件),随便粘几十行代码进去。今天所有练习都在它身上做,别拿正在工作的代码当靶子。</p>
+
+        <h3>2.1 VSCode:安装 VSCodeVim</h3>
+        <ol>
+          <li>扩展市场(<kbd>Cmd</kbd><kbd>Shift</kbd><kbd>x</kbd>)搜索 <code>Vim</code>,安装 <strong>VSCodeVim</strong>(发布者 vscodevim.vim,下载量千万级那个),点「重新加载」;</li>
+          <li><strong>确认生效</strong>:打开任意文件,左下角状态栏出现 <code>-- NORMAL --</code>;按 <kbd>i</kbd> 它变成 <code>-- INSERT --</code>,按 <kbd class="escape">Esc</kbd> 变回来 —— 成了;</li>
+          <li>建议追加这段最小配置(<kbd>Cmd</kbd><kbd>,</kbd> 打开设置,右上角图标切到 JSON 编辑):</li>
+        </ol>
+        <pre class="code-block"><code>{
+  "vim.useSystemClipboard": true,   // y 复制 / p 粘贴直接走系统剪贴板
+                                    // (Cmd-C / Cmd-V 也照常可用,两边不打架)
+  "vim.hlsearch": true,             // 搜索命中高亮(第 8 章用)
+  "editor.lineNumbers": "relative"  // 相对行号:第 3 章 5j 这种跳法的前提
+}</code></pre>
+        <ul>
+          <li><strong>临时禁用</strong>:偶尔需要纯 IDE 操作(比如拖拽选中大段)时,<kbd>Cmd</kbd><kbd>Shift</kbd><kbd>p</kbd> 执行 <code>Vim: Toggle Vim Mode</code>,用完再切回来。</li>
+        </ul>
+
+        <h3>2.2 IntelliJ IDEA:安装 IdeaVim</h3>
+        <ol>
+          <li><code>Settings → Plugins → Marketplace</code> 搜索 <strong>IdeaVim</strong>,安装并重启 IDE;</li>
+          <li><strong>确认生效</strong>:打开文件按 <kbd>:</kbd>,屏幕左下角出现命令输入条;或右下角状态栏出现 Vim 模式指示 —— 成了;</li>
+          <li>创建 <code>~/.ideavimrc</code>(终端 <code>touch ~/.ideavimrc</code>,没有这个文件插件也照样能用,配置只是锦上添花):</li>
+        </ol>
+        <pre class="code-block"><code>set number          " 显示行号
+set relativenumber  " 相对行号(第 3 章讲为什么)
+set hlsearch        " 搜索高亮
+set incsearch       " 边输入边匹配,所见即所得</code></pre>
+        <ul>
+          <li>以后改了这个文件,在编辑器里执行 <code>:so ~/.ideavimrc</code> 立即生效,不用重启;</li>
+          <li><strong>临时禁用</strong>:点击编辑器右下角的 Vim 图标,可以一键关掉插件(救急用)。</li>
+        </ul>
+
+        <div class="callout tip">
+          <span class="co-title">✅ 装完的检查清单</span>
+          ① 状态栏能看到当前模式;② <kbd>i</kbd> / <kbd class="escape">Esc</kbd> 能自由进出插入模式;③ 输入 <code>:w</code> 回车后,标签页上的修改标记(小圆点/星号)消失了。三条都过,装备完毕。
+        </div>
+
+        <div class="callout warn">
+          <span class="co-title">⚠️ 注意</span>
+          装完插件后,部分按键会被 Vim 接管:IDEA 里的 <kbd>Ctrl</kbd><kbd>d</kbd> 会变成「向下翻半页」而不是全局搜索类操作,VSCode 里 <kbd>Cmd</kbd><kbd>d</kbd> 之外的多数单键也会先被 Vim 吃掉。冲突如何仲裁、哪些键建议还给 IDE,第 12 章专门讲;<strong>现在先不管</strong>,不影响本章。
+        </div>
+
+        <h2>3. 第一课:进去,出来 —— i / a / I / A / Esc</h2>
+        <p>插入模式不是常态,是<strong>出差</strong>:按 <kbd>i</kbd> 进去,办完事(打完字),立刻按 <kbd class="escape">Esc</kbd> 回家。这一来一回是 Vim 的第一块肌肉记忆,先看动画:</p>
+
+        <h3>3.1 i:在光标前落笔</h3>
+        <div class="demo-slot" data-demo="ch01-01-i-esc"></div>
+        <p>注意两个细节:① 进入插入模式后,状态栏变成 <code>-- INSERT --</code>,光标从「块」变成「竖线」;② 按 <kbd class="escape">Esc</kbd> 回普通模式时,光标会<strong>左移一格</strong>,停在最后输入的字符上 —— 这是 Vim 的刻意设计,普通模式的命令永远作用在光标<em>所在</em>的字符上。</p>
+
+        <h3>3.2 a:在光标后落笔</h3>
+        <p><kbd>i</kbd> 在光标<strong>前</strong>插入;如果你要写在光标<strong>后</strong>(比如给变量加个后缀),用 <kbd>a</kbd>(append),它会先把光标右移一格再进入插入:</p>
+        <div class="demo-slot" data-demo="ch01-02-a-append"></div>
+
+        <h3>3.3 I 与 A:行首与行尾的直达版</h3>
+        <p>给行尾补分号,难道要先按一路 <kbd>→</kbd>?不用。<kbd>A</kbd> 直接跳到行尾进入插入;同理 <kbd>I</kbd> 跳到行首(第一个非空白字符,自动保留缩进)进入插入。它们是 <kbd>i</kbd>/<kbd>a</kbd> 的「直达版」,顺手还会偷看到下一章的主角 <kbd>j</kbd>:</p>
+        <div class="demo-slot" data-demo="ch01-07-I-A"></div>
+
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>含义</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>i</kbd></td><td>光标【前】进入插入</td><td>在标识符中间改内容</td></tr>
+            <tr><td><kbd>a</kbd></td><td>光标【后】进入插入</td><td>给标识符加后缀</td></tr>
+            <tr><td><kbd>I</kbd></td><td>行首(首个非空白)进入插入</td><td>行首加 <code>// </code> 注释</td></tr>
+            <tr><td><kbd>A</kbd></td><td>行尾进入插入</td><td>行尾补分号 / 补逗号</td></tr>
+            <tr><td><kbd>o</kbd></td><td>下方开新行并进入插入</td><td>函数体里加一条语句</td></tr>
+            <tr><td><kbd>O</kbd></td><td>上方开新行并进入插入</td><td>在当前行前面插一行</td></tr>
+          </tbody>
+        </table>
+
+        <h3>3.4 到底选哪个?一个简单的决策法</h3>
+        <p>别背表格,问自己一个问题:<strong>我要在哪里落笔?</strong></p>
+        <ul>
+          <li>落笔处在光标<strong>前 / 后</strong> → <kbd>i</kbd> / <kbd>a</kbd>;</li>
+          <li>落笔处在<strong>行首 / 行尾</strong> → <kbd>I</kbd> / <kbd>A</kbd>(省掉移动光标的两步);</li>
+          <li>落笔处是<strong>不存在的行</strong>(上面/下面新建)→ <kbd>O</kbd> / <kbd>o</kbd>。</li>
+        </ul>
+        <p>选错了也不要紧:<kbd class="escape">Esc</kbd> 回来重选就是,成本一秒钟。练到后来,手指会先于意识做出选择 —— 那就是肌肉记忆到了。</p>
+
+        <h3>3.5 插入模式里的世界</h3>
+        <p>插入模式里你仍然可以:</p>
+        <ul>
+          <li>正常打字、删除(<kbd>⌫</kbd> 退格)、用方向键小范围挪动 —— 但请尽量克制,方向键是坏习惯的开始;</li>
+          <li>用 <kbd>Ctrl</kbd><kbd>o</kbd> 临时执行<strong>一个</strong>普通模式命令,然后自动回到插入模式(彩蛋,第 6 章细讲);</li>
+          <li>用 <kbd>Ctrl</kbd><kbd>w</kbd> 删掉光标前一个单词(比连按退格快,第 6 章细讲)。</li>
+        </ul>
+        <p>另外记住一个彩蛋键 <kbd>g</kbd><kbd>i</kbd>:回到<strong>上次退出插入模式的位置</strong>并直接进入插入 —— 刚才 <kbd class="escape">Esc</kbd> 出来想马上回去补两个字?它就是为此而生(第 6 章细讲)。</p>
+
+        <p><strong>训练法</strong>:在靶场文件里,光标放到任意标识符上,按 <kbd>i</kbd> 输入两个字母,<kbd class="escape">Esc</kbd>;再按 <kbd>a</kbd> 输入两个字母,<kbd class="escape">Esc</kbd>。重复二十次,目标是<em>不看键盘、不想「我在哪个模式」</em> —— 手自己知道。</p>
+
+        <h2>4. 保命三键与后悔药:x / dd / o / u</h2>
+        <p>普通模式的威力初体验:<strong>不进插入模式,也能删、能开行</strong>。而且删除的粒度一开始就比「按住退格键」大:</p>
+
+        <h3>4.1 x:删一个字符</h3>
+        <p><kbd>x</kbd> 删掉光标处的字符。手滑多打了一个字符?光标挪过去(暂时用方向键没关系)一刀。它还有个镜像 <kbd>X</kbd>,删光标<strong>前</strong>的字符(相当于退格,但不用进插入模式)。</p>
+
+        <h3>4.2 dd:删一整行</h3>
+        <div class="demo-slot" data-demo="ch01-03-dd"></div>
+        <p>为什么是<strong>两个</strong> <kbd>d</kbd>?第一个 <kbd>d</kbd> 是动词「删除」,它在等一个宾语;第二个 <kbd>d</kbd> 表示宾语 = 当前行 —— 「删,删的对象是这行」。这就是 Vim 编辑语言的第一个完整句子,虽然是个省略句。后面的章节里,你会把第二个 <kbd>d</kbd> 换成别的名词:换成 <kbd>w</kbd> 删一个词、换成 <kbd>)</kbd> 删到句尾…… 动词不变,宾语随便换。</p>
+
+        <h3>4.3 o:向下开新行</h3>
+        <div class="demo-slot" data-demo="ch01-04-o"></div>
+
+        <h3>4.4 u 与 Ctrl-r:后悔药与反后悔药</h3>
+        <div class="demo-slot" data-demo="ch01-05-x-u"></div>
+        <p>关于撤销,现在记一件事就够:<strong>一次「变更」对应一次 <kbd>u</kbd></strong>。你从 <kbd>i</kbd> 进插入模式到 <kbd class="escape">Esc</kbd> 出来,中间不管打了多少字,算<strong>一次</strong>变更 —— 一键全撤。这个特性非常好用,细讲在第 10 章。</p>
+
+        <table class="ktable">
+          <thead><tr><th>意图</th><th>按键</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>删一个字符</td><td><kbd>x</kbd></td><td>镜像 <kbd>X</kbd> 删光标前的</td></tr>
+            <tr><td>删整行</td><td><kbd>d</kbd><kbd>d</kbd></td><td>动词 + 当前行</td></tr>
+            <tr><td>下面开新行</td><td><kbd>o</kbd></td><td>直接进入插入模式</td></tr>
+            <tr><td>上面开新行</td><td><kbd>O</kbd></td><td>同上,方向相反</td></tr>
+            <tr><td>撤销</td><td><kbd>u</kbd></td><td>一次撤销一个变更</td></tr>
+            <tr><td>重做</td><td><kbd>Ctrl</kbd><kbd>r</kbd></td><td>把刚撤销的再做回来</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout tip">
+          <span class="co-title">💡 数一数按键</span>
+          「删掉这一行」:鼠标方案 = 手离键盘 + 定位 + 拖选 + 删除 ≈ 3–4 秒;<kbd>d</kbd><kbd>d</kbd> 方案 = 0.3 秒,且视线从未离开代码。单次差距小,乘以每天几百次,就是下班时间的差距 —— 这是学 Vim 的全部经济学。
+        </div>
+
+        <h2>5. 保存与退出:命令行模式</h2>
+        <p>按 <kbd>:</kbd> 进入<strong>命令行模式</strong>:屏幕左下角出现一条命令行,输入命令、回车执行;按 <kbd class="escape">Esc</kbd> 取消。最常用的几条:</p>
+
+        <div class="demo-slot" data-demo="ch01-06-colon-w"></div>
+
+        <table class="ktable">
+          <thead><tr><th>命令</th><th>含义</th><th>IDE 中的等价物</th></tr></thead>
+          <tbody>
+            <tr><td><code>:w</code></td><td>保存(write)</td><td><kbd>Cmd</kbd><kbd>s</kbd></td></tr>
+            <tr><td><code>:q</code></td><td>关闭当前文件 / 标签页(quit)</td><td><kbd>Cmd</kbd><kbd>w</kbd></td></tr>
+            <tr><td><code>:wq</code></td><td>保存并退出</td><td>两者连按</td></tr>
+            <tr><td><code>:q!</code></td><td><strong>不保存</strong>,强制退出(放弃全部修改)</td><td>关闭时选「不保存」</td></tr>
+            <tr><td><kbd>Z</kbd><kbd>Z</kbd></td><td>普通模式直接按,等价 <code>:wq</code>(免冒号)</td><td>—</td></tr>
+            <tr><td><code>:w 文件名</code></td><td>另存为(第 11 章细讲)</td><td>Save As</td></tr>
+          </tbody>
+        </table>
+        <p>细节控补充:<code>:x</code> 与 <code>:wq</code> 几乎等价,区别是 <code>:x</code> 只在<strong>真的改过</strong>时才写盘(不刷新文件的修改时间)。知道即可,不必背。</p>
+
+        <h3>5.1 命令行小技巧</h3>
+        <ul>
+          <li>命令行里按 <kbd>↑</kbd> / <kbd>↓</kbd> 可以翻<strong>命令历史</strong> —— 刚才敲过的 <code>:w</code> 再按一次只需 <kbd>:</kbd><kbd>↑</kbd><kbd>⏎</kbd>;</li>
+          <li>输到一半想放弃:<kbd class="escape">Esc</kbd> 或 <kbd>Ctrl</kbd><kbd>c</kbd> 都可以全身而退;</li>
+          <li>命令行也是模式:待在里面时打的字都是命令的一部分,不会进文件 —— 迷路了照例 <kbd class="escape">Esc</kbd>。</li>
+        </ul>
+
+        <h2>6. 指法与热身:Esc 到底怎么按</h2>
+        <p><kbd class="escape">Esc</kbd> 在键盘左上角,看起来很远,其实标准指法下<strong>左手小指向左上方轻伸一格</strong>就够到 —— 和按 <kbd>~</kbd> 同一个位置区间。不用看键盘,不用挪手腕。前三天的酸痛感是正常的,第四天开始它会变成反射。</p>
+        <table class="ktable">
+          <thead><tr><th>动作</th><th>指法</th><th>练习</th></tr></thead>
+          <tbody>
+            <tr><td>按 <kbd class="escape">Esc</kbd></td><td>左手小指左上伸展,手腕不动</td><td rowspan="3">每天开工前热身 30 秒:<br><kbd class="escape">Esc</kbd> <kbd>j</kbd> <kbd class="escape">Esc</kbd> <kbd>k</kbd> × 10 遍<br>(j / k 就是下 / 上,先混脸熟)</td></tr>
+            <tr><td>按 <kbd>d</kbd><kbd>d</kbd></td><td>左右手食指各一下,同时击键感</td></tr>
+            <tr><td>按 <kbd>i</kbd> / <kbd>a</kbd></td><td>右手 / 左手中指或食指,回位要快</td></tr>
+          </tbody>
+        </table>
+        <p>如果小指确实吃力,macOS 可以把<strong>大写锁定键改成 Esc</strong>(系统设置 → 键盘 → 功能键行为,或用 Karabiner-Elements 做更细的映射)—— 很多人这么干,详细步骤见附录 B。先试原味指法一周,再决定要不要改。</p>
+
+        <h2>7. 今日训练计划(45 分钟)</h2>
+        <p>学 Vim 不靠顿悟,靠<strong>今天这 45 分钟</strong>。照着做:</p>
+        <table class="ktable">
+          <thead><tr><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td>0–10 分钟</td><td>重读 §1 与 §3,重放全部 7 个演示(用 ⏭ 单步,看清每一步状态栏)</td><td>能说清 NORMAL / INSERT / CMDLINE 各干什么</td></tr>
+            <tr><td>10–25 分钟</td><td>终端里 <code>vimtutor</code> 做完第 1 讲(官方版热身)</td><td>不看提示完成删字符、插入、撤销</td></tr>
+            <tr><td>25–35 分钟</td><td>练习 2:删-悔-开行十连(靶场文件)</td><td>全程不看键盘</td></tr>
+            <tr><td>35–45 分钟</td><td>练习 3 与练习 4:i/a 改名 + 盲操作自测</td><td>盲测 8/10 通过,今天毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>8. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong><kbd class="escape">Esc</kbd> 回家</strong>:迷路、按错、恐慌,一律先按 Esc;</li>
+          <li><strong>出差办完就回</strong>:插入模式只用来打字,打完立刻退,别在里面安家;</li>
+          <li><strong><kbd>u</kbd> 管够</strong>:大胆练,一个键就能时光倒流。</li>
+        </ol>
+        <p>下一章我们解决第一个真问题:<strong>怎么把光标快速挪到想去的地方</strong> —— 方向键从此退役,主键区接管一切移动。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:官方 vimtutor 第一讲(约 15 分钟)</summary>
+          <div class="answer">
+            <p>打开终端输入 <code>vimtutor</code>(macOS 自带),做完第 1 讲即可。它就是官方版的本章内容,双保险。做完你应该能不假思索地完成:移动光标、<kbd>x</kbd> 删字符、<kbd>i</kbd>/<kbd>a</kbd> 插入、<kbd>u</kbd> 撤销、<code>:q</code> 退出。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:在 IDE 里做「删 — 悔 — 开行」十连</summary>
+          <div class="answer">
+            <p>靶场文件,光标放到某行:<kbd>d</kbd><kbd>d</kbd> 删掉 → <kbd>u</kbd> 悔回来 → <kbd>o</kbd> 在下面开新行,输入一行注释,<kbd class="escape">Esc</kbd>。循环 10 次。要点:<strong>全程不看键盘</strong>,感受 dd 和 u 的粒度都是「一整行」。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:只用 i / a / I / A / Esc 改代码</summary>
+          <div class="answer">
+            <p>四件事各做 5 次:① 光标停在标识符中间,用 <kbd>i</kbd> 加前缀;② 用 <kbd>a</kbd> 加后缀;③ 随便找一行,用 <kbd>I</kbd> 在行首加 <code>// </code> 把它注释掉;④ 用 <kbd>A</kbd> 给没有分号的行补分号。每次都以 <kbd class="escape">Esc</kbd> 收尾。开始建立「进 → 打 → 出」的节奏感:决定用哪个键的瞬间,就是你开始用 Vim 思考的瞬间。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲操作自测(毕业考)</summary>
+          <div class="answer">
+            <p>把手放在键盘上,眼睛离开键盘(看屏幕就行):闭着眼完成序列 <kbd>d</kbd><kbd>d</kbd> → <kbd>u</kbd> → <kbd>o</kbd> → 输入 <code>test</code> → <kbd class="escape">Esc</kbd>。做 10 组,成功 8 组即毕业。失败的都是 <kbd class="escape">Esc</kbd> 没按实 —— 明天继续热身。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 Esc 太远,按着累</span>
+          左手小指往左上一勾就是,标准指法本来就该够到;如果确实痛苦,macOS 可以把大写锁定键改成 Esc(系统设置 → 键盘 → 功能键),一劳永逸 —— 详细步骤见附录 B。建议先练一周原味指法再决定。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 常驻插入模式综合征</span>
+          新手的本能:按一次 <kbd>i</kbd> 进去,把插入模式当普通编辑器用,改半天不出来。这样等于只买了 Vim 的壳。心法反过来:<strong>普通模式是家</strong>,每次只在需要打字的那几秒钟进插入,打完立刻 <kbd class="escape">Esc</kbd>。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 插入模式漫游</span>
+          进了插入模式就忘了出来,用方向键或鼠标在文件里逛,逛到别处继续打字 —— 模式纪律彻底崩坏。对策:每次想移动光标,先 <kbd class="escape">Esc</kbd> 回普通模式再动;移动本来就是普通模式的职责(下一章整章都在讲怎么优雅地移动)。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 中文输入法卡在中文状态</span>
+          插入模式打完中文,按 <kbd class="escape">Esc</kbd> 回普通模式,但输入法还是中文 —— 下次按 <kbd>d</kbd> 想删除,却弹出了拼音候选。短期:手动切回 ABC;根治:VSCodeVim 的自动切换输入法(配合 macism),配置见附录 B。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>安装即用,零配置可学完本章;状态栏左下角显示 <code>-- NORMAL --</code> / <code>-- INSERT --</code>,迷路就瞄一眼</li>
+              <li><code>:w</code> 完全等价 <kbd>Cmd</kbd><kbd>s</kbd>;<code>:q</code> 关闭标签页;<code>:wq</code> 保存并关闭</li>
+              <li><code>vim.useSystemClipboard</code> 开启后,y / p 与 Cmd-C / Cmd-V 共用系统剪贴板,互不打架</li>
+              <li>临时停用:<kbd>Cmd</kbd><kbd>Shift</kbd><kbd>p</kbd> → <code>Vim: Toggle Vim Mode</code></li>
+              <li><kbd>Cmd</kbd><kbd>,</kbd> 搜 <code>vim</code> 可看到全部选项(完整推荐见第 12 章)</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>装 IdeaVim 插件 + <code>~/.ideavimrc</code>(见上文),改完 <code>:so ~/.ideavimrc</code> 热加载</li>
+              <li><code>:w</code> 保存当前文件;<code>:wq</code> 会保存并关闭标签页</li>
+              <li>右下角有 Vim 图标,可一键临时停用插件(需要纯 IDE 操作时救急)</li>
+              <li>IDEA 自身的 <kbd>Cmd</kbd><kbd>s</kbd> / <kbd>Cmd</kbd><kbd>w</kbd> 依然可用,Vim 命令是叠加而非替换</li>
+              <li>插件在 IDE 内更新即可,不用动 .ideavimrc</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>i</kbd> / <kbd>a</kbd></td><td>光标前 / 后进入插入</td><td><kbd>x</kbd></td><td>删一个字符</td></tr>
+            <tr><td><kbd>I</kbd> / <kbd>A</kbd></td><td>行首 / 行尾进入插入</td><td><kbd>d</kbd><kbd>d</kbd></td><td>删整行</td></tr>
+            <tr><td><kbd>o</kbd> / <kbd>O</kbd></td><td>下 / 上开新行</td><td><kbd>u</kbd> / <kbd>Ctrl</kbd><kbd>r</kbd></td><td>撤销 / 重做</td></tr>
+            <tr><td><kbd class="escape">Esc</kbd></td><td>回普通模式(回家)</td><td><kbd>Z</kbd><kbd>Z</kbd></td><td>保存退出(= :wq)</td></tr>
+            <tr><td><code>:w</code> <code>:q</code> <code>:wq</code> <code>:q!</code></td><td>存 / 关 / 存关 / 弃改强退</td><td><kbd>g</kbd><kbd>i</kbd></td><td>回上次插入点(彩蛋)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:普通模式是家,插入模式是出差;迷路就按 Esc。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch00.html">← 第 0 章 · 使用指南</a>
+          <a href="ch02.html">第 2 章 · 移动·字符与词 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch01.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

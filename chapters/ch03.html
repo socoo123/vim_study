@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 3 章 · 移动·行与文件 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch03" data-ch="ch03">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 03 · 移动篇 下</div>
+        <h1>移动·行与文件:大范围跳跃</h1>
+        <div class="ch-meta-line">预计阅读 35 分钟(含练习约 1 小时)· 前置:第 2 章 · 本章演示 7 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>建立<strong>行间与文件级</strong>的移动能力:不再用滚轮「逛」到目的地,而是<strong>报地址直达</strong></li>
+          <li>掌握相对行号思维:<kbd>5j</kbd> / <kbd>3k</kbd> 一步跳 N 行</li>
+          <li>掌握文件三键:<kbd>g</kbd><kbd>g</kbd>(开头)、<kbd>G</kbd>(结尾)、<kbd>{n}</kbd><kbd>G</kbd> / <kbd>:</kbd><kbd>n</kbd>(直达第 n 行)</li>
+          <li>掌握结构级移动:段落 <kbd>{</kbd> <kbd>}</kbd>、配对符 <kbd>%</kbd> —— <strong>按代码的结构跳,不按行号跳</strong></li>
+          <li>会用书签 <kbd>m</kbd><kbd>a</kbd> + <kbd>'</kbd><kbd>a</kbd> / <kbd>`</kbd><kbd>a</kbd> 和跳转表 <kbd>Ctrl</kbd>+<kbd>o</kbd> / <kbd>Ctrl</kbd>+<kbd>i</kbd> <strong>走回头路</strong></li>
+          <li>了解窗口地标 <kbd>H</kbd> <kbd>M</kbd> <kbd>L</kbd> 与滚动键 <kbd>Ctrl</kbd>+<kbd>d</kbd>/<kbd>u</kbd>、<kbd>z</kbd><kbd>z</kbd> 的分工</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 行内自由之后,新的痛</h2>
+        <p><a href="ch02.html">第 2 章</a>毕业时,你在<strong>一行之内</strong>已经两键直达任何位置。但真实代码是几百行的文件:光标在第 30 行,你想去第 55 行看看那个函数,再回 30 行继续写 —— 熟悉的剧本上演:右手摸向鼠标,滚轮哗哗滚,眼睛扫过中间二十几行不知所云,到了地方改两笔,又哗哗滚回来。这趟旅程里你的眼睛当了一次「人肉传送带」,而这正是 Vim 诞生的年代里 Ken Thompson 要解决的核心问题之一:<strong>光标移动不应该消耗注意力</strong>。</p>
+        <p>先分清两种动作:「<strong>滚动</strong>」和「<strong>到达</strong>」。滚动是浏览 —— 你想<strong>看看</strong>中间有什么,适合鼠标滚轮和 <kbd>Ctrl</kbd>+<kbd>d</kbd>/<kbd>u</kbd>;到达是通勤 —— 你<strong>已经知道</strong>要去哪,只是要走过去,适合本章的主角们。90% 的日常移动是「到达」,而多数人把它们全办成了「滚动」,痛就痛在这。本章给你三件套:报行号(<kbd>5j</kbd>、<kbd>42G</kbd>)、认结构(<kbd>{</kbd> <kbd>}</kbd>、<kbd>%</kbd>)、走回头路(书签、跳转表)。</p>
+        <p>还有一条贯穿全章的伏笔:这些移动键不仅是「去」的门票,它们同时是<strong>编辑语言的名词</strong> —— 第 4、5 章你已经见过 <kbd>d</kbd><kbd>t</kbd><kbd>,</kbd> 和 <kbd>d</kbd><kbd>i</kbd><kbd>w</kbd>,本章的 <kbd>%</kbd> 也能当名词(<kbd>d</kbd><kbd>%</kbd> 删整个块)。移动学得越透,后面动词的射程就越远。</p>
+
+        <h2>2. 相对行号:把 j/k 变成传送门</h2>
+        <p><kbd>j</kbd>/<kbd>k</kbd> 一次一行,去五格之外就得连按五次 —— 问题不在按键,在于<strong>你得自己数</strong>。解法是让编辑器替你数:<strong>相对行号(relative line numbers)</strong>。开启后,当前行显示真实行号,其余行显示「离当前行几步」。想去哪行,读一下它头上的数字,报数,走人:</p>
+
+        <div class="demo-slot" data-demo="ch03-01-relative-jk"></div>
+
+        <p>看演示时注意行号列的变化:每跳一步,所有行号都重算一次 —— 因为「相对」的参照物是你自己。这就是它的哲学:<strong>位置不是文件的属性,是你和目标的距离</strong>。配合计数前缀,<kbd>2j</kbd>、<kbd>4k</kbd> 变成「报地址」:眼睛看目标、读距离、手指报数,全程不用心算「55 减 30 等于几」。</p>
+        <p>两个实用建议:①<strong>绝对行号 + 相对行号混用</strong>是主流配置(当前行给绝对号,方便和报错信息、同事口头引用对齐;其他行给相对距离,方便跳)—— 播放器里演示的就是这种,Vim 里叫 <code>set number relativenumber</code>,IDE 的开启方法见本章 IDE 备注;②距离超过<strong>一屏</strong>就别数了 —— 相对行号只服务「看得见的距离」,更远的目标交给下一节的文件三键。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 相对行号的正确打开方式</span>
+          开启它之后的第一个星期,强迫自己做一件事:<strong>任何垂直移动,先读数字再按</strong> <kbd>3j</kbd>,禁止连按 <kbd>j</kbd><kbd>j</kbd><kbd>j</kbd>。连按的问题是每次只思考一格,手比脑快;报数逼你先确认目标,一步到位。一周后 <kbd>数字</kbd>+<kbd>j</kbd>/<kbd>k</kbd> 会成为本能,你会发现自己再也不看滚动条了。
+        </div>
+
+        <h2>3. 文件三键:gg、G 与 {n}G</h2>
+        <p>超出视野的距离,思路从「数步数」切换到「报门牌」:<kbd>g</kbd><kbd>g</kbd> 直奔<strong>文件第一行</strong>,大写 <kbd>G</kbd> 直奔<strong>最后一行</strong>,<kbd>{n}</kbd><kbd>G</kbd> 精确直达<strong>第 n 行</strong>(命令行版是 <kbd>:</kbd><kbd>n</kbd> 再回车,效果相同):</p>
+
+        <div class="demo-slot" data-demo="ch03-02-gg-G"></div>
+
+        <p><kbd>g</kbd><kbd>g</kbd> 的来历顺带一提:goto —— <kbd>g</kbd> 是「扩展前缀」,<kbd>g_</kbd>、<kbd>gU</kbd>、<kbd>gJ</kbd> 都是它带的词,这个家族你已经很熟了。<kbd>{n}</kbd><kbd>G</kbd> 的最高频场景是<strong>跟着报错跳</strong>:编译器说第 42 行有错、测试输出指向第 118 行 —— 眼睛读到数字,手上报 <kbd>4</kbd><kbd>2</kbd><kbd>G</kbd>,两秒内人到现场,这是 Vim 用户的标志性动作。另有两个顺手键记一眼:当前行之上/之下第一个非空行用 <kbd>-</kbd> / <kbd>+</kbd>(少用但偶尔顺手),行内定位交给第 2 章。</p>
+        <p>注意 <kbd>G</kbd> 落地时<strong>默认落在该行第一个非空白字符上</strong>(受 <code>startofline</code> 选项影响,默认开)—— 所以跳过去通常正好落在代码上而不是缩进空格里,很贴心。而 <kbd>g</kbd><kbd>g</kbd> 同理会落在第一行首个非空白字符(演示里第一行顶格,所以是第 0 列)。</p>
+        <p>顺带一个和 IDE 的对照:两个 IDE 都有「转到行」对话框(VSCode 的 <kbd>Ctrl</kbd>+<kbd>g</kbd>,IDEA 的 <kbd>Cmd</kbd>+<kbd>l</kbd>),功能上与 <kbd>{n}</kbd><kbd>G</kbd> 等价 —— 区别在交互节奏:对话框要等弹窗、要按回车,Vim 的版本是盲打的,眼睛全程不用离开代码。这也是本教程反复出现的主题:同一个功能,Vim 的形态永远更贴着手指。日常跟着编译报错、测试栈帧跳行时,把 <kbd>1</kbd><kbd>2</kbd><kbd>0</kbd><kbd>G</kbd> 练成肌肉记忆,比每次开「转到行」快出一截。</p>
+
+        <h2>4. 段落移动:{ 与 }</h2>
+        <p>报行号适合「我知道门牌」,但更多时候你知道的是<strong>结构</strong>:「下一个函数」「上一段配置」。<kbd>}</kbd> 跳到下一段、<kbd>{</kbd> 跳回上一段 —— Vim 对「段落」的定义和<a href="ch04.html">第 4 章</a>的 <kbd>i</kbd><kbd>p</kbd> 完全一致:<strong>空行分隔的一坨连续文本</strong>:</p>
+
+        <div class="demo-slot" data-demo="ch03-03-paragraph"></div>
+
+        <p>两个细节:①落点是<strong>分段的空行本身</strong>,不是下一段的第一个字符 —— 想直接进段内干活,补一个 <kbd>j</kbd> 或 <kbd>w</kbd> 就好,不必较劲;②<kbd>{</kbd> <kbd>}</kbd> 同样吃计数,<kbd>2</kbd><kbd>}</kbd> 跳过一段。代码文件几乎都用空行分隔逻辑块,所以这对键的实际体验是「按函数/逻辑块翻页」—— 调试时快速浏览文件结构,比滚轮高效一个量级,而且它跳的是<strong>语义边界</strong>,不会停在半截逻辑中间让你分神。</p>
+        <p>同族还有一对句子键 <kbd>(</kbd> <kbd>)</kbd>(按英文句号分句)。在代码里句子边界几乎没有意义(分号不是句号),<strong>写 Markdown 或文案时才偶尔有用</strong>,知道有这对键即可,不必练。真正值得练的结构键是下面这位。</p>
+
+        <h2>5. %:配对符任意门</h2>
+        <p>把光标放到 <kbd>(</kbd>、<kbd>{</kbd>、<kbd>[</kbd>(或它们的闭括号)上,按 <kbd>%</kbd> —— 直达<strong>配对的另一半</strong>。多深、多远、跨多少行都无所谓:</p>
+
+        <div class="demo-slot" data-demo="ch03-04-percent"></div>
+
+        <p><kbd>%</kbd> 的日常用法有三层。第一层,<strong>看结构</strong>:光标在函数的 <kbd>{</kbd> 上按 <kbd>%</kbd>,一眼看到函数结尾在哪行,再按一次弹回来 —— 「这个函数多长」两键就有答案。第二层,<strong>配对检查</strong>:改完一堆括号,从最外层 <kbd>%</kbd> 一下,落点符合预期说明配对没坏;落点诡异说明有括号漏了或多了,这是比肉眼数括号可靠得多的自检。第三层,<strong>当名词</strong>:<kbd>d</kbd><kbd>%</kbd> 从光标删到配对符(含两端)—— 想删掉整个 if 块、整层包装?光标放到 <kbd>{</kbd> 上,<kbd>d</kbd><kbd>%</kbd>,完事。它和第 4 章的 <kbd>d</kbd><kbd>a</kbd><kbd>{</kbd> 是近亲:区别是 <kbd>%</kbd> 要求光标<strong>先站在括号上</strong>,而对象只要求在块内 —— 现场哪个顺手用哪个。</p>
+
+        <div class="callout tip">
+          <span class="co-title">💡 光标不在括号上?先搭个桥</span>
+          <kbd>%</kbd> 只认光标脚下的字符。最常见的组合是 <kbd>f</kbd><kbd>(</kbd> + <kbd>%</kbd>:先用第 2 章的 <kbd>f</kbd> 把光标送上括号,再跳。另外一对冷门但好用的:在块的<strong>任意位置</strong>直接跳配对,可以用 <kbd>[</kbd><kbd>(</kbd> / <kbd>]</kbd><kbd>)</kbd>(跳到本层开/闭括号)—— 记不住没关系,用 <kbd>f</kbd> 搭桥 + <kbd>%</kbd> 已经够日常了。
+        </div>
+
+        <h2>6. 书签:m、' 与 `</h2>
+        <p>「到达」解决了一半,另一半是<strong>回来</strong>。场景:你在第 200 行改代码,需要去文件头查一个常量的定义 —— 查完怎么回 200 行?再 <kbd>2</kbd><kbd>0</kbd><kbd>0</kbd><kbd>G</kbd> 一次?行号还可能已经变了。正确工具是<strong>书签(mark)</strong>:出发前钉个钉子,回来时一键召回。</p>
+
+        <div class="demo-slot" data-demo="ch03-05-bookmarks"></div>
+
+        <p>语法:<kbd>m</kbd><kbd>{字母}</kbd> 设书签(如 <kbd>m</kbd><kbd>a</kbd>),<kbd>'</kbd><kbd>{字母}</kbd> 跳到书签所在<strong>行首</strong>,<kbd>`</kbd><kbd>{字母}</kbd> 连行带<strong>列</strong>精确还原。设书签时屏幕毫无提示 —— 这是它被低估的原因之一,人们不信任看不见的操作,但 <kbd>m</kbd> 是 Vim 里最可靠的静默操作之一。命名建议:用有含义的字母,<kbd>m</kbd><kbd>b</kbd>(begin)、<kbd>m</kbd><kbd>e</kbd>(end)、<kbd>m</kbd><kbd>t</kbd>(todo)比随手 <kbd>m</kbd><kbd>a</kbd> 三天后还记得住。</p>
+        <p>两个进阶知识点先混个脸熟:①小写 <kbd>a</kbd>–<kbd>z</kbd> 是<strong>本文件</strong>书签,大写 <kbd>A</kbd>–<kbd>Z</kbd> <strong>跨文件</strong>且持久(重启也在);②还有一对系统自动维护的特殊书签:<kbd>'</kbd><kbd>'</kbd>(两个单引号)跳到<strong>上次跳转出发的地方</strong> —— 在两处来回横跳时它是零成本往返门,试试 <kbd>G</kbd> 之后按 <kbd>'</kbd><kbd>'</kbd>。</p>
+        <p>书签最经典的用工场景是「对照改码」:接口定义处设 <kbd>m</kbd><kbd>i</kbd>(interface)、调用密集区设 <kbd>m</kbd><kbd>c</kbd>(calls),写实现时 <kbd>'</kbd><kbd>i</kbd> 看一眼签名、<kbd>'</kbd><kbd>c</kbd> 回战场 —— 两三个字母就是你的私人分屏。再比如 code review:从头部意见区设 <kbd>m</kbd><kbd>r</kbd>,一路往下改,改完 <kbd>'</kbd><kbd>r</kbd> 回去对清单,不多不少正好够用。</p>
+
+        <h2>7. 窗口地标 H M L 与滚动家族</h2>
+        <p><kbd>H</kbd>(High)、<kbd>M</kbd>(Middle)、<kbd>L</kbd>(Low)分别跳到<strong>可见窗口</strong>的第一行、正中、最后一行。注意它们的坐标系是<strong>屏幕</strong>而不是文件 —— 不管文件滚到哪,三键永远落在你眼前这屏的三颗地标上:</p>
+
+        <div class="demo-slot" data-demo="ch03-06-HML-zz"></div>
+
+        <p>使用频率上 <kbd>H</kbd> <kbd>M</kbd> <kbd>L</kbd> 属于二线键(有 <kbd>{n}</kbd><kbd>G</kbd> 和相对行号在,垂直直达很少缺工具),但两个场景很好用:①翻页/搜索后<strong>先按 <kbd>M</kbd> 定锚</strong>再观察四周;②配合 d 家族吃射程 —— <kbd>d</kbd><kbd>H</kbd> 删到窗口顶、<kbd>d</kbd><kbd>L</kbd> 删到窗口底(「这一屏的下半部分不要了」的裸奔说法,第 7 章可视化模式会给更稳的替代)。</p>
+        <p>滚动家族一句话扫清(演示器窗口固定,自己到 IDE 里感受):<kbd>Ctrl</kbd>+<kbd>d</kbd> / <kbd>Ctrl</kbd>+<kbd>u</kbd> 向下/向上滚<strong>半页</strong>(最常用的浏览键,手指不用离开主键区);<kbd>z</kbd><kbd>z</kbd> 把当前行滚到屏幕正中,<kbd>z</kbd><kbd>t</kbd> 顶到最上,<kbd>z</kbd><kbd>b</kbd> 压到最下 —— <kbd>z</kbd> 家族不移动光标,只<strong>挪屏幕</strong>。高频组合:长行/长函数里改完一处 <kbd>z</kbd><kbd>z</kbd> 把战场居中;<kbd>%</kbd> 跳到块尾后 <kbd>z</kbd><kbd>z</kbd> 把结局拉到眼前。至于整页的 <kbd>Ctrl</kbd>+<kbd>f</kbd> / <kbd>Ctrl</kbd>+<kbd>b</kbd>,和 <kbd>PageUp</kbd>/<kbd>PageDown</kbd> 同义,交给个人口味。</p>
+
+        <h2>8. 跳转表:Ctrl-o 与 Ctrl-i</h2>
+        <p>书签要<strong>手动设钉</strong>,适合「我知道会回来」的地方;更多时候你只是逛着逛着想原路返回 —— 这需要<strong>自动记录</strong>的历史。Vim 维护着一张<strong>跳转表(jumplist)</strong>:每次大跳(<kbd>g</kbd><kbd>g</kbd>、<kbd>G</kbd>、<kbd>{n}</kbd><kbd>G</kbd>、<kbd>%</kbd>、<kbd>'</kbd><kbd>a</kbd>、搜索命中……)都会登记一条。<kbd>Ctrl</kbd>+<kbd>o</kbd> 沿表<strong>后退</strong>,<kbd>Ctrl</kbd>+<kbd>i</kbd> <strong>前进</strong> —— 和浏览器的后退/前进是同一个思想:</p>
+
+        <div class="demo-slot" data-demo="ch03-07-jumplist"></div>
+
+        <p>把它和书签分工记住:<strong>书签是「存档点」,跳转表是「浏览历史」</strong>。两三步之内回得来,用 <kbd>Ctrl</kbd>+<kbd>o</kbd> 连按;要固定往返于两个工作点,用 <kbd>m</kbd><kbd>a</kbd> 更稳(跳转表会被后续跳转冲,书签不会)。跳转表在 IDE 里还有个重量级队友:第 12 章会讲 <kbd>g</kbd><kbd>d</kbd>(跳到定义)—— 跳过去看一眼源码,<kbd>Ctrl</kbd>+<kbd>o</kbd> 回来,这对组合是「查证-回岗」工作流的地基,而地基本章已经打好。另外注意:小步移动(<kbd>j</kbd>、<kbd>w</kbd>、<kbd>f</kbd>)<strong>不进跳转表</strong> —— 历史只记大跳,不会被碎步刷屏,这个设计体会一下会很佩服。</p>
+
+        <h2>9. 移动篇毕业:去哪儿,用什么</h2>
+        <p>两章移动课到此收官,把全部工具压进一张决策表 —— 以后每当你伸手去摸鼠标,先扫一眼这张表:</p>
+        <table class="ktable">
+          <thead><tr><th>目的地</th><th>按键</th><th>一句话备注</th></tr></thead>
+          <tbody>
+            <tr><td>同一行内某处</td><td><kbd>f</kbd>x / <kbd>w</kbd> / <kbd>$</kbd> …</td><td>第 2 章:两键到达</td></tr>
+            <tr><td>邻近几行</td><td><kbd>3</kbd><kbd>j</kbd> / <kbd>2</kbd><kbd>k</kbd></td><td>配相对行号,读数字报数</td></tr>
+            <tr><td>已知行号</td><td><kbd>42</kbd><kbd>G</kbd> 或 <kbd>:</kbd><kbd>42</kbd></td><td>报错、测试输出指路专用</td></tr>
+            <tr><td>文件头 / 尾</td><td><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></td><td>两端书挡</td></tr>
+            <tr><td>下一段 / 上一段</td><td><kbd>}</kbd> / <kbd>{</kbd></td><td>按逻辑块翻,落在空行上</td></tr>
+            <tr><td>配对符另一半</td><td><kbd>%</kbd></td><td>光标先站上括号;还能 <kbd>d</kbd><kbd>%</kbd></td></tr>
+            <tr><td>屏幕顶 / 中 / 底</td><td><kbd>H</kbd> / <kbd>M</kbd> / <kbd>L</kbd></td><td>坐标系是屏幕,不是文件</td></tr>
+            <tr><td>回来(临时)</td><td><kbd>Ctrl</kbd>+<kbd>o</kbd></td><td>浏览历史后退,<kbd>Ctrl</kbd>+<kbd>i</kbd> 前进</td></tr>
+            <tr><td>回来(固定)</td><td><kbd>'</kbd><kbd>a</kbd> / <kbd>`</kbd><kbd>a</kbd></td><td>先 <kbd>m</kbd><kbd>a</kbd> 设钉;` 连列一起还原</td></tr>
+            <tr><td>只是想看看</td><td><kbd>Ctrl</kbd>+<kbd>d</kbd> / <kbd>Ctrl</kbd>+<kbd>u</kbd></td><td>浏览才滚动,到达别滚动</td></tr>
+          </tbody>
+        </table>
+        <p>最后给一个自测标准,达标就算移动篇毕业:<strong>任何一次光标移动超过 5 行,你的手都没有离开主键区;任何一次「去而复返」,你都有意识地选了 Ctrl-o 或书签而不是重新找</strong>。做到这两条,第 5 章的语法在你手上就有了飞毛腿 —— 编辑语言的名词库,至此齐装满员。</p>
+
+        <h2>10. 每日训练计划(30 分钟 × 3 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>开相对行号;重放演示 1–2,读 §1–§3;靶场里 10 组「读数字 → 数字 j/k」</td><td>不再连按 j 超过两次</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1:报数跳</td><td>10 组 8 组一步命中</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 3–5,读 §4–§6;真实文件里 }{{} 和 % 各巡一圈</td><td><kbd>d</kbd><kbd>%</kbd> 删块一次成功</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 2 + 练习 3</td><td>书签巡逻三轮不出错</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>重放演示 6–7,读 §7–§9;把决策表抄进便签贴屏幕边</td><td>能默写决策表 8 成</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:盲测毕业考</td><td>10 题对 7 题,移动篇毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>到达别滚动</strong>:知道去哪就报地址 —— <kbd>3j</kbd>(相对行号)、<kbd>42G</kbd>(行号)、<kbd>}</kbd>(下一段)、<kbd>%</kbd>(配对符);滚轮和 <kbd>Ctrl</kbd>+<kbd>d</kbd>/<kbd>u</kbd> 只留给「随便看看」;</li>
+          <li><strong>回来有专门工具</strong>:临时回程连按 <kbd>Ctrl</kbd>+<kbd>o</kbd>,固定往返设书签 <kbd>m</kbd><kbd>a</kbd> —— 别用重新找的方式回去;</li>
+          <li><strong>移动键都是名词</strong>:今天学的 <kbd>%</kbd> 明天就是 <kbd>d</kbd><kbd>%</kbd> 的射程 —— 移动词每多一个,动词的火力就翻一倍,这是「编辑语言」的复利。</li>
+        </ol>
+        <p>移动篇两章到此完成,你的光标已经能在文件里飞行。下一章进入全站核心:给「东西」起名字 —— 文本对象。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:报数跳(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场开好相对行号,光标放文件中部。心里选一个目标行 → 瞄一眼它头上的相对数字 → <kbd>数字</kbd>+<kbd>j</kbd> 或 <kbd>k</kbd> 一步命中。10 组。然后升级:目标定在<strong>当前窗口外</strong>(看不见的行),改用 <kbd>行号</kbd><kbd>G</kbd> 或 <kbd>:</kbd><kbd>行号</kbd>(先开绝对行号或用状态栏行号)。通过线:10 组里 8 组不用按第二次。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:书签巡逻(10 分钟)</summary>
+          <div class="answer">
+            <p>在一个 100 行以上的真实文件里:<kbd>m</kbd><kbd>a</kbd> 在文件头附近设点、<kbd>m</kbd><kbd>b</kbd> 中部、<kbd>m</kbd><kbd>c</kbd> 尾部。然后按 <kbd>'</kbd><kbd>c</kbd> → <kbd>'</kbd><kbd>a</kbd> → <kbd>`</kbd><kbd>b</kbd>(注意第三个用反引号,感受连列还原)循环巡逻五轮。再玩 <kbd>G</kbd> + <kbd>Ctrl</kbd>+<kbd>o</kbd>:跳到文件尾,连按 <kbd>Ctrl</kbd>+<kbd>o</kbd> 一路退回出发地,再用 <kbd>Ctrl</kbd>+<kbd>i</kbd> 前进回去。体会「存档点」和「历史」的手感差异。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:% 往返工坊(10 分钟)</summary>
+          <div class="answer">
+            <p>找一段嵌套两层以上的代码:①光标 <kbd>f</kbd><kbd>(</kbd> 送上一个内层括号,<kbd>%</kbd> 往返 10 次;②光标放到函数的 <kbd>{</kbd> 上,<kbd>%</kbd> 看结尾、<kbd>%</kbd> 弹回,5 组;③<kbd>d</kbd><kbd>%</kbd> 删掉一个 if 块,<kbd>u</kbd> 悔回;<kbd>4</kbd><kbd>j</kbd> 挪到另一层再 <kbd>d</kbd><kbd>%</kbd>,<kbd>u</kbd>。通过线:能说出 <kbd>d</kbd><kbd>%</kbd> 和 <kbd>d</kbd><kbd>a</kbd><kbd>{</kbd> 对光标位置要求的区别(前者要求站在括号上,后者只要求在块内)。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>对真实代码,10 个任务<strong>先说按键再看答案</strong>:①去文件第一行 ②去最后一行 ③去第 42 行(说出两种按键)④去下一段 ⑤回上一段 ⑥光标在 <kbd>{</kbd> 上,看这个块在哪结束 ⑦删掉光标所在的整个 if 块(括号要求?)⑧设书签并一键回岗 ⑨把当前行滚到屏幕中央 ⑩沿历史后退三步。答案:<kbd>gg</kbd> / <kbd>G</kbd> / <kbd>42G</kbd> 或 <kbd>:42</kbd> / <kbd>}</kbd> / <kbd>{</kbd> / <kbd>%</kbd> / <kbd>d%</kbd>(光标需在 <kbd>{</kbd> 上;在块内则用 <kbd>da{</kbd>)/ <kbd>ma</kbd>…<kbd>'a</kbd> / <kbd>zz</kbd> / <kbd>Ctrl-o</kbd> 连按三次。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 相对行号下找「绝对第 N 行」</span>
+          开了相对行号后,行号列全是距离,想直接去「第 120 行」却拿 120 当距离按 <kbd>120j</kbd> —— 大型事故现场。记住:当前行头顶那个<strong>没有正负号</strong>的数字才是绝对行号;去绝对行号用 <kbd>120G</kbd> 或 <kbd>:</kbd><kbd>120</kbd>,相对数只用来跳「看得见」的目标。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 以为 } 落在下一段的第一个字符上</span>
+          <kbd>}</kbd> 的落点是<strong>分段的空行本身</strong>(或文件末尾),不是下一段开头 —— 于是按完感觉「没动」。这不是 bug:<kbd>{</kbd> <kbd>}</kbd> 移动到的是「段边界」。养成补一枪的习惯:<kbd>}</kbd><kbd>j</kbd>(进段)或 <kbd>}</kbd><kbd>w</kbd>(直达第一个词)。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 Ctrl-d / Ctrl-u 被 IDE 抢走了</span>
+          在 VSCode 里 <kbd>Ctrl</kbd>+<kbd>d</kbd> 原生是「添加多光标」,装了 VSCodeVim 后默认被 Vim 接管成半页滚动(多光标改用 <kbd>g</kbd><kbd>b</kbd>);但若你改过键盘快捷键或用别的插件,可能半页滚动就失灵了。滚不动先查键冲突;IDEA 里 mac 的 <kbd>Cmd</kbd>+<kbd>d</kbd> 是复制行,和 Vim 无关,<kbd>Ctrl</kbd>+<kbd>d</kbd> 才是滚动。详见本章 IDE 备注。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 指望小写书签隔天还在</span>
+          小写 <kbd>a</kbd>–<kbd>z</kbd> 书签是<strong>会话级</strong>的:关掉文件/IDE 就消失;要跨会话、跨文件,用大写 <kbd>A</kbd>–<kbd>Z</kbd>。另外别把书签当任务清单长期囤 —— 它最好的用法是「当下这几分钟的往返钉」,用完就换,钉子越少越记得住哪根是哪根。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li><strong>相对行号</strong>:设置项 <code>editor.lineNumbers</code> 改为 <code>relative</code>(设置界面搜 "Line Numbers");当前行会自动显示绝对号,正好是推荐的混用形态</li>
+              <li><kbd>Ctrl</kbd>+<kbd>d</kbd>:VSCode 原生是「添加下一个匹配为多光标」;装 VSCodeVim 后默认接管为<strong>半页滚动</strong>,多光标用 <kbd>g</kbd><kbd>b</kbd>(第 7 章)。若想还原原生行为,在 Keyboard Shortcuts 里自己仲裁</li>
+              <li><kbd>%</kbd>、<kbd>H</kbd><kbd>M</kbd><kbd>L</kbd>、<kbd>z</kbd><kbd>z</kbd>、书签、<kbd>Ctrl</kbd>+<kbd>o</kbd>/<kbd>i</kbd> 跳转表:VSCodeVim 全部原生支持,照 Vim 语义用</li>
+              <li>VSCode 自己也有「后退/前进」导航(Go 菜单),但它与 Vim 跳转表<strong>历史不互通</strong> —— 用 Vim 键就认 Vim 的表,别混着按</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li><strong>相对行号</strong>:在 <code>~/.ideavimrc</code> 加 <code>set relativenumber</code>(与已有的 <code>set number</code> 同时开即混用形态);IDEA 编辑器设置里也有原生 Relative line numbers 选项 —— 建议<strong>用 IdeaVim 的一侧</strong>,行为和 Vim 文档一致</li>
+              <li><kbd>Ctrl</kbd>+<kbd>d</kbd>/<kbd>u</kbd>:mac 上 IDEA 的 <kbd>Cmd</kbd>+<kbd>d</kbd> 是复制当前行(与 Vim 无关);<kbd>Ctrl</kbd>+<kbd>d</kbd> 由 IdeaVim 接管为半页滚动。若个别键不生效,是 <code>sethandler</code> 仲裁问题,第 12 章配置篇统一处理</li>
+              <li>书签:IDEA 自带书签(<kbd>F11</kbd>)与 Vim 的 <kbd>m</kbd> 书签<strong>互不相通</strong>,选一套用即可;IdeaVim 的 <kbd>A</kbd>–<kbd>Z</kbd> 大写书签同样支持跨文件</li>
+              <li><kbd>Ctrl</kbd>+<kbd>o</kbd> 在 IDEA 里原生是「回到上一个编辑位置」—— IdeaVim 激活后走 Vim 跳转表语义,覆盖之;想用原生的可从菜单 Navigate › Back 进入</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>3j</kbd> / <kbd>4k</kbd></td><td>按相对行号跳 N 行</td><td><kbd>%</kbd> / <kbd>d</kbd><kbd>%</kbd></td><td>配对符往返 / 删整块</td></tr>
+            <tr><td><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></td><td>文件第一行 / 最后一行</td><td><kbd>m</kbd><kbd>a</kbd> + <kbd>'</kbd><kbd>a</kbd></td><td>设书签 / 跳回(行)</td></tr>
+            <tr><td><kbd>42</kbd><kbd>G</kbd> / <kbd>:</kbd><kbd>42</kbd></td><td>直达第 42 行(两种)</td><td><kbd>`</kbd><kbd>a</kbd> / <kbd>'</kbd><kbd>'</kbd></td><td>书签(带列)/ 上次位置</td></tr>
+            <tr><td><kbd>}</kbd> / <kbd>{</kbd></td><td>下一段 / 上一段(空行分界)</td><td><kbd>Ctrl</kbd>+<kbd>o</kbd> / <kbd>Ctrl</kbd>+<kbd>i</kbd></td><td>跳转表后退 / 前进</td></tr>
+            <tr><td><kbd>H</kbd> / <kbd>M</kbd> / <kbd>L</kbd></td><td>窗口顶 / 中 / 底</td><td><kbd>Ctrl</kbd>+<kbd>d</kbd>/<kbd>u</kbd> / <kbd>z</kbd><kbd>z</kbd></td><td>半页滚动 / 当前行居中</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:到达报地址(行号、段落、配对符),回来靠钉子(书签)和历史(Ctrl-o)—— 滚动只留给浏览。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch02.html">← 第 2 章 · 移动·字符与词</a>
+          <a href="ch04.html">第 4 章 · 文本对象 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch03.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vim 修炼场 — 面向 VSCode / IDEA 开发者的动画教程</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>从「按方向键」到「说 Vim 语」</h1>
+      <p class="sub">
+        面向 VSCode 与 IntelliJ IDEA 开发者的中文 Vim 教程:每个按键都有<strong>回放动画</strong>、
+        配套练习与两个 IDE 的差异说明。学完你会在日常写码中自然用出 Vim,而不是背键位表。
+      </p>
+      <div class="badges">
+        <span class="pill">🎬 全站 70+ 动画演示</span>
+        <span class="pill">🖥 VSCodeVim + IdeaVim</span>
+        <span class="pill">🇨🇳 全中文</span>
+        <span class="pill">📄 可打印速查表</span>
+      </div>
+    </section>
+
+    <div class="progress-panel">
+      <div class="progress-track"><div class="progress-fill"></div></div>
+      <span class="progress-text">已读 0 / 16</span>
+    </div>
+
+    <section class="module">
+      <h2>一、基础篇 · 先活下来</h2>
+      <p class="module-sub">装好插件,掌握最小生存集,建立「模式」直觉</p>
+      <div class="cards">
+        <a class="card" href="chapters/ch00.html" data-ch="ch00">
+          <div class="ch-no">CHAPTER 00</div>
+          <div class="ch-title">使用指南</div>
+          <div class="ch-desc">怎么用本站:演示播放器、学习方法论、路线图</div>
+          <div class="ch-meta">⏱ 8 分钟 · 🎬 1 演示 · 🟢 已上线</div>
+        </a>
+        <a class="card" href="chapters/ch01.html" data-ch="ch01">
+          <div class="ch-no">CHAPTER 01</div>
+          <div class="ch-title">生存篇:模式与 IDE 配置</div>
+          <div class="ch-desc">五种模式、i/a/Esc、x/dd/o/u、:wq,五分钟武装 VSCode 与 IDEA</div>
+          <div class="ch-meta">⏱ 25 分钟 · 🎬 7 演示 · 🟢 已上线</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="module">
+      <h2>二、移动篇 · 光标如飞</h2>
+      <p class="module-sub">方向键退役,手不离主键区</p>
+      <div class="cards">
+        <a class="card" href="chapters/ch02.html" data-ch="ch02">
+          <div class="ch-no">CHAPTER 02</div>
+          <div class="ch-title">移动 · 字符与词</div>
+          <div class="ch-desc">w b e、0 ^ $、f t 精准行内跳跃,word 与 WORD</div>
+          <div class="ch-meta">⏱ 40 分钟 · 🎬 7 演示 · 🟢 已上线</div>
+        </a>
+        <a class="card" href="chapters/ch03.html" data-ch="ch03">
+          <div class="ch-no">CHAPTER 03</div>
+          <div class="ch-title">移动 · 行与文件</div>
+          <div class="ch-desc">相对行号、gg G、段落跳跃、% 配对、书签与滚动</div>
+          <div class="ch-meta">⏱ 35 分钟 · 🎬 7 演示 · 🟢 已上线</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="module">
+      <h2>三、语法篇 · 编辑即说话(核心)</h2>
+      <p class="module-sub">动词 + 名词,Vim 的本质:一条小小的编辑语言</p>
+      <div class="cards">
+        <a class="card" href="chapters/ch04.html" data-ch="ch04">
+          <div class="ch-no">CHAPTER 04</div>
+          <div class="ch-title">文本对象</div>
+          <div class="ch-desc">iw aw i( a( i" it … — 「删掉这个单词」「改掉这对引号里的内容」</div>
+          <div class="ch-meta">⏱ 45 分钟 · 🎬 9 演示 · 🟢 已上线</div>
+        </a>
+        <a class="card" href="chapters/ch05.html" data-ch="ch05">
+          <div class="ch-no">CHAPTER 05</div>
+          <div class="ch-title">编辑动词与语法</div>
+          <div class="ch-desc">d c y 全家桶、p/P 粘贴、count、组合公式 [(count)] 动词 [(count)] 名词</div>
+          <div class="ch-meta">⏱ 45 分钟 · 🎬 10 演示 · 🟢 已上线</div>
+        </a>
+        <a class="card" href="chapters/ch06.html" data-ch="ch06">
+          <div class="ch-no">CHAPTER 06</div>
+          <div class="ch-title">插入与替换模式</div>
+          <div class="ch-desc">I A o O 全姿势、插入模式内的快捷键、R 覆写</div>
+          <div class="ch-meta">⏱ 30 分钟 · 🎬 5 演示 · 🟢 已上线</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="module">
+      <h2>四、进阶篇 · 重复劳动的终结者</h2>
+      <p class="module-sub">选择、替换、寄存器、宏 —— 批量操作三板斧</p>
+      <div class="cards">
+        <a class="card" href="chapters/ch07.html" data-ch="ch07">
+          <div class="ch-no">CHAPTER 07</div>
+          <div class="ch-title">可视化模式与块编辑</div>
+          <div class="ch-desc">v V C-v、块插入批量加注释、gv 与 o,与多光标的取舍</div>
+          <div class="ch-meta">⏱ 35 分钟 · 🎬 7 演示 · 🟢 已上线</div>
+        </a>
+        <a class="card" href="chapters/ch08.html" data-ch="ch08">
+          <div class="ch-no">CHAPTER 08</div>
+          <div class="ch-title">查找与替换</div>
+          <div class="ch-desc">/ n N、* 号查找、:s 全家桶与确认模式、:g global 命令</div>
+          <div class="ch-meta">⏱ 35 分钟 · 🎬 7 演示 · 🟢 已上线</div>
+        </a>
+        <a class="card" href="chapters/ch09.html" data-ch="ch09">
+          <div class="ch-no">CHAPTER 09</div>
+          <div class="ch-title">寄存器与剪贴板</div>
+          <div class="ch-desc">复制被删除顶掉之谜、"0p、"a 抽屉、"_ 黑洞、系统剪贴板打通</div>
+          <div class="ch-meta">⏱ 25 分钟 · 🎬 5 演示 · 🟢 已上线</div>
+        </a>
+        <div class="card is-todo" data-ch="ch10">
+          <div class="ch-no">CHAPTER 10</div>
+          <div class="ch-title">撤销、重复与宏</div>
+          <div class="ch-desc">. 的适用边界、q 录制宏、Ctrl-a 数字递增的神配合</div>
+          <div class="ch-meta">⏱ 40 分钟 · 🎬 6 演示 · 敬请期待</div>
+        </div>
+        <div class="card is-todo" data-ch="ch11">
+          <div class="ch-no">CHAPTER 11</div>
+          <div class="ch-title">多文件与窗口</div>
+          <div class="ch-desc">buffer 思维、Ctrl-^ 往返、分屏;何时该用 IDE 原生功能</div>
+          <div class="ch-meta">⏱ 20 分钟 · 🎬 3 演示 · 敬请期待</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="module">
+      <h2>五、集成与实战 · 毕业考</h2>
+      <p class="module-sub">把 Vim 融进 IDE,而不是对抗 IDE;然后用真实重构场景收官</p>
+      <div class="cards">
+        <div class="card is-todo" data-ch="ch12">
+          <div class="ch-no">CHAPTER 12</div>
+          <div class="ch-title">IDE 集成:配置与特色命令</div>
+          <div class="ch-desc">VSCodeVim 与 .ideavimrc 推荐配置、gd 跳定义、键位冲突仲裁</div>
+          <div class="ch-meta">⏱ 35 分钟 · 🎬 4 演示 · 敬请期待</div>
+        </div>
+        <div class="card is-todo" data-ch="ch13">
+          <div class="ch-no">CHAPTER 13</div>
+          <div class="ch-title">实战案例集</div>
+          <div class="ch-desc">12 个真实重构场景:按键分解 + 动画 + 与鼠标做法对比</div>
+          <div class="ch-meta">⏱ 60 分钟 · 🎬 12 演示 · 敬请期待</div>
+        </div>
+        <div class="card is-todo">
+          <div class="ch-no">APPENDIX A</div>
+          <div class="ch-title">快速参考手册</div>
+          <div class="ch-desc">分类按键速查表,打印友好</div>
+          <div class="ch-meta">📄 敬请期待</div>
+        </div>
+        <div class="card is-todo">
+          <div class="ch-no">APPENDIX B</div>
+          <div class="ch-title">常见陷阱与 FAQ</div>
+          <div class="ch-desc">Esc 重映射、输入法自动切换、插件已知坑</div>
+          <div class="ch-meta">🔧 敬请期待</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p>用法:双击 <code>index.html</code> 即可离线浏览。若演示区域空白,请在项目目录运行 <code>python3 -m http.server</code> 后访问 <code>http://localhost:8000</code>。</p>
+      <p>Vim 修炼场 · 全中文 · 纯静态零依赖 · 课程与进度由 PLAN.md / STATUS.md 管理</p>
+    </footer>
+  </main>
+
+  <script src="assets/js/nav.js"></script>
+  <script src="assets/js/progress.js"></script>
+</body>
+</html>

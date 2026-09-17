@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 7 章 · 可视化模式与块编辑 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch07" data-ch="ch07">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 07 · 进阶篇 上</div>
+        <h1>可视化模式与块编辑:眼见为实的选择</h1>
+        <div class="ch-meta-line">预计阅读 35 分钟(含练习约 1.5 小时)· 前置:第 2、4、5 章 · 本章演示 7 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>掌握<strong>三种种选择</strong>:<kbd>v</kbd> 字符、<kbd>V</kbd> 整行、<kbd>Ctrl</kbd>+<kbd>v</kbd> 块 —— 各自的适用形状一目了然</li>
+          <li>理解可视模式的本质:<strong>移动命令从「跳」变成「伸长选区」</strong>,圈好地之后动词随时进场</li>
+          <li>练成块编辑杀手锏:<strong>块插入 <kbd>I</kbd> / 块追加 <kbd>A</kbd></strong>(批量注释、行尾补分号)与<strong>块删除 <kbd>d</kbd></strong>(整列切掉)</li>
+          <li>学会选区微调:<kbd>o</kbd> 换端修剪、<kbd>gv</kbd> 一键召回上次选区</li>
+          <li>建立<strong>「文本对象优先,可视模式兜底,块编辑独占列操作」</strong>的选型直觉,并知道什么时候该改用 IDE 多光标</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 有了文本对象,为什么还需要「选」?</h2>
+        <p><a href="ch04.html">第 4 章</a>的文本对象让你「指物」:<kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 改这个词,<kbd>d</kbd><kbd>a</kbd><kbd>(</kbd> 删这对括号 —— 不用选、不用看,一句话说完。那可视化模式(Visual mode)还有什么用?它不可替代的场景有三类:</p>
+        <p>第一类是<strong>眼见为实</strong>。文本对象是「盲指」—— 范围对不对,按完才知道;可视模式是「先圈后动」—— 选区亮起来,你亲眼确认这块就是要动的范围,再下动词。改重要代码、删一大段不确定边界的内容时,这半秒钟的确认价值千金。第二类是<strong>不规则范围</strong>。「从这行的这个字符到下面第三行那个字符」—— 这种不对应任何文本对象的歪 ranges,用 <kbd>v</kbd> 圈最直接。第三类,也是本章主角:<strong>矩形</strong>。注释一列、删一列、给若干行行尾统一加点东西 —— 字符和行的模型都表达不了「列」,只有 <kbd>Ctrl</kbd>+<kbd>v</kbd> 的块可以。</p>
+        <p>先把三种选法一张表认全,后面逐个展开:</p>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>模式名</th><th>选什么</th><th>什么时候用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>v</kbd></td><td>VISUAL(字符)</td><td>从光标到移动命令落点之间的字符</td><td>不规则范围、跨行的一段、要亲眼确认边界</td></tr>
+            <tr><td><kbd>V</kbd></td><td>VISUAL LINE(行)</td><td>整行整行的块</td><td>按行为单位施工:挪缩进、合并、整删、整复制</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>v</kbd></td><td>VISUAL BLOCK(块)</td><td>一个矩形(行 × 列)</td><td>一切「列」形状的操作:批量注释、行尾追加、删列</td></tr>
+          </tbody>
+        </table>
+        <p>一个先行的总原则:<strong>能一句话说完的用文本对象,要亲眼看的用 v,按行算账的用 V,只有「列」的形状才请出 Ctrl-v</strong>。块编辑很帅,但它是三板斧里的最后一张牌 —— 多数人日常 v 和 V 占九成,Ctrl-v 在特定场景一击必杀。</p>
+
+        <h2>2. v 字符可视化:圈地与施工</h2>
+        <p><kbd>v</kbd> 进入字符可视化后,游戏规则只变了一条:<strong>所有移动命令不再是「跳过去」,而是「把选区伸长/缩短到那里」</strong>。<kbd>w</kbd> 选到下个词头,<kbd>e</kbd> 选到词尾,<kbd>$</kbd> 选到行尾,<kbd>f</kbd><kbd>;</kbd> 选到分号,<kbd>3j</kbd> 选到下面第三行 —— 第 2、3 章练的所有移动,在这里全部复用,只是语义从「到达」变成「圈地」。圈好之后,任意动词进场施工:</p>
+
+        <div class="demo-slot" data-demo="ch07-01-v-basics"></div>
+
+        <p>演示里两个值得回味的细节:①<strong>选中后的大小写三兄弟</strong> <kbd>U</kbd>/<kbd>u</kbd>/<kbd>~</kbd>(大写/小写/逐字翻转)是可视模式的招牌动词 —— 它们平时也用得了,但选中一大片再翻转的手感,是文本对象给不了的「看着改」;②<strong>v 和移动命令的搭配</strong>就是你的选区词汇量,<kbd>v</kbd><kbd>e</kbd>、<kbd>v</kbd><kbd>i</kbd><kbd>w</kbd>(对,可视模式里也能用文本对象!)、<kbd>v</kbd><kbd>$</kbd>、<kbd>v</kbd><kbd>f</kbd><kbd>,</kbd> —— 圈地的精细度,完全由第 2 章的功力决定。</p>
+        <p>退出选区有两条路:<kbd>Esc</kbd> 放弃选择退回普通模式;或者再按一次 <kbd>v</kbd>(以及 <kbd>V</kbd>/<kbd>Ctrl</kbd>+<kbd>v</kbd>)切换到别的种选择。三种模式互切是免 Esc 的:<kbd>v</kbd> 圈着圈着发现该按行算 → 直接 <kbd>V</kbd>。</p>
+        <p>有一句实话也要说在前面:<strong>可视模式比「动词+名词」多按一次键</strong>(先 <kbd>v</kbd> 圈地、再敲动词,而 <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 一句话就完事),所以它不该成为默认编辑方式 —— 高手用可视模式的频率,远低于新手想象。它的定位是<strong>特定形状的专用工具</strong>:要亲眼确认的、不规则的、跨多行混杂的、以及一切矩形。把这个边界守好,本章的技能才是加分项而不是负担。</p>
+
+        <h2>3. V 行可视化:整行为单位</h2>
+        <p><kbd>V</kbd> 进入行可视化:选区永远是<strong>完整的行</strong>,上下移动(<kbd>j</kbd> <kbd>k</kbd> <kbd>}</kbd> <kbd>G</kbd>…)就是整行整行地扩。它解决一类高频场景:<strong>按行算账</strong>。最典型的是挪代码块:</p>
+
+        <div class="demo-slot" data-demo="ch07-02-V-indent"></div>
+
+        <p>把几行语句挪进 <code>if</code>/<code>for</code> 块里(右移 <kbd>&gt;</kbd>)、还原缩进(<kbd>&lt;</kbd>)、几行合成一行(<kbd>J</kbd>)、整块删(<kbd>d</kbd>)、整块复制(<kbd>y</kbd>)—— 这些动词在行选区上全按「行」执行。注意 <kbd>&gt;</kbd> 施完工自动退出选区,紧接着普通模式的 <kbd>.</kbd> 能对同一批行再缩一级 —— <strong>V → 扩行 → &gt; → .</strong> 是挪代码块的标准四拍。</p>
+        <p>顺带一个对照:第 5 章讲过 <kbd>3</kbd><kbd>&gt;</kbd><kbd>&gt;</kbd> 也能缩三行 —— 数字与可视模式是两种「数行数」的办法,行数少眼可数时用数字,行数多或想看着选时用 <kbd>V</kbd>。行选还有个隐藏福利:<kbd>V</kbd><kbd>j</kbd><kbd>j</kbd><kbd>y</kbd> 复制的必然是<strong>整行</strong>,粘贴时自动按行落位(第 9 章讲寄存器时会回收这个伏笔)。</p>
+
+        <h2>4. Ctrl-v 块可视化:矩形是一等公民</h2>
+        <p>终于到主角。<kbd>Ctrl</kbd>+<kbd>v</kbd> 进入块可视化:你操作的不再是「一段文字」而是<strong>一个矩形</strong> —— 从光标(左上角)到移动命令落点(右下角)围出的框,框住的字符构成选区。向下扩行用 <kbd>j</kbd>,向右扩列用 <kbd>l</kbd>/<kbd>w</kbd> —— 任何移动命令都可以,列边界跟着落点的列走。</p>
+        <p>块选区最独特的键是 <kbd>$</kbd>:普通 <kbd>v</kbd> 里 <kbd>$</kbd> 把选区拉到「当前行」行尾;块模式里 <kbd>$</kbd> 把右边界拉到<strong>每一行各自的行尾</strong> —— 行长行短不齐时,这个语义正好是「每行都选到尾」,批量行尾操作的钥匙。看杀手锏一号:</p>
+
+        <div class="demo-slot" data-demo="ch07-04-block-append"></div>
+
+        <p>行尾批量加分号,传统做法是「End → ; → 下移 → End → ;」的循环,或者 IDE 里挨个点;块编辑一套 <kbd>Ctrl</kbd>+<kbd>v</kbd> <kbd>2j</kbd> <kbd>$</kbd> <kbd>A</kbd> <kbd>;</kbd> <kbd>Esc</kbd> 完事。哪些行要补、哪些不补?眼睛扫着列,手指只圈要补的那几行 —— 这就是「列」这个形状的表达力。</p>
+        <p>两个实战小贴士:①<strong>块插入打错了怎么办</strong> —— 直接 <kbd>Esc</kbd>,然后一个 <kbd>u</kbd> 把三行的错误一起撤销(块操作是一个撤销单元),重新来过比在里面修更干净;②<strong>哪些行入选你说了算</strong> —— 圈块不必从第一行圈到最后一行,中间跳过的行就不受影响,补分号时遇到一行本来就有分号,<kbd>j</kbd> 跳过它再继续圈即可。块的「选择权」完全在你手里,这是它比正则替换(<code>:s</code>)更细腻的地方:替换按「内容」圈,块按「位置」圈,两种圈法互补。</p>
+
+        <h2>5. 块插入 I 与块追加 A:一次打字,处处生效</h2>
+        <p>块模式里有两条专用通道,把「打字」也批量化了:<strong><kbd>I</kbd> 块插入</strong>(在每行块的左边缘之前插入)和 <strong><kbd>A</kbd> 块追加</strong>(在每行块的右边缘之后追加)。它们的行为有一个必须提前打预防针的特点:</p>
+
+        <div class="demo-slot" data-demo="ch07-03-block-comment"></div>
+
+        <p>看到了吗 —— <strong>打字过程中只有光标那一行显示输入,其他行纹丝不动,直到 <kbd>Esc</kbd> 才同时生效</strong>。第一次用的人 90% 在这里慌了:以为没生效,于是按 <kbd>Esc</kbd> 之外的各种键试图「刷新」,结果把块搞坏。记住:<strong>块插入/追加是延迟满足,Esc 就是发货按钮</strong>。批量加 <code>// </code> 注释是它最著名的应用 —— 注释多行、给多行加统一前缀(如 Markdown 的 <code>&gt; </code>、SQL 的 <code>-- </code>、YAML 的键名),全是这一套。</p>
+        <p>把 I/A/$ 三个部件组装起来,两条生产线:<strong>批量注释</strong> = <kbd>Ctrl</kbd>+<kbd>v</kbd> 圈行 → <kbd>I</kbd> → <code>// </code> → <kbd>Esc</kbd>;<strong>行尾追加</strong> = <kbd>Ctrl</kbd>+<kbd>v</kbd> 圈行 → <kbd>$</kbd> → <kbd>A</kbd> → 内容 → <kbd>Esc</kbd>。取消注释则是块删除的活:光标挪到注释列首(<kbd>f</kbd><kbd>/</kbd> 两键到达),<kbd>Ctrl</kbd>+<kbd>v</kbd> 圈住注释列,<kbd>d</kbd> 整块切掉 —— 下一节。</p>
+
+        <h2>6. 块删除与块替换:d、c、x 在矩形上</h2>
+        <p>动词在块选区上按「矩形」执行:<kbd>d</kbd> 删掉整块、<kbd>x</kbd> 同义、<kbd>c</kbd> 删掉整块后进入「块插入」(每行分别输入,<kbd>Esc</kbd> 统一生效)、<kbd>r</kbd>-单字符把整块替换成同一个字符。最常用的是 <kbd>d</kbd> —— 删一列:</p>
+
+        <div class="demo-slot" data-demo="ch07-05-block-delete"></div>
+
+        <p>「删列」的适用面比看上去广:对齐的表格砍掉一列、日志行去掉时间戳前缀、把行号列剥掉、上面演示的批量取消注释 —— 本质都是「每行的同一位置起、同样性质的一段,一次切掉」。配 <kbd>$</kbd> 就是「从这列起到行尾」,配具体列宽就是「正好这一列」。<kbd>c</kbd> 块替换则适合「每行的这一段都要换,但内容相同」的场景(比如把三行的 <code>todo</code> 标记统一改成 <code>done</code>)。</p>
+        <p>三个键在块上的行为差异,用一张小场景表固定下来:</p>
+        <table class="ktable">
+          <thead><tr><th>场景</th><th>按键</th><th>效果</th></tr></thead>
+          <tbody>
+            <tr><td>三行的状态列 <code>todo</code> 全删</td><td>块选 <kbd>d</kbd></td><td>矩形消失,左右两边合拢</td></tr>
+            <tr><td>三行的 <code>todo</code> 统一改成 <code>done</code></td><td>块选 <kbd>c</kbd> 输入 <code>done</code> <kbd>Esc</kbd></td><td>每行分别输入、Esc 统一生效(宽度不必相同)</td></tr>
+            <tr><td>把一列内容「涂掉」变成分隔线</td><td>块选 <kbd>r</kbd><kbd>-</kbd></td><td>整块每格都变成 <code>-</code>,画表格分隔线神器</td></tr>
+            <tr><td>删掉每行行尾多余的一个字符</td><td>块选右起一列 <kbd>x</kbd></td><td>等价于块 <kbd>d</kbd>,手指更顺手</td></tr>
+          </tbody>
+        </table>
+        <p>注意 <kbd>c</kbd> 与 <kbd>I</kbd>/<kbd>A</kbd> 的分工:I/A 是「在块的边缘<strong>之外</strong>加东西」,c 是「把块的内部<strong>换掉</strong>」—— 一个做加法一个做替换,组合起来,矩形世界里「增、删、改」三件事就齐了。</p>
+
+        <h2>7. 选区微调:o 换端、gv 召回</h2>
+        <p>圈地圈得不准怎么办?两个专用的微调键,都是可视模式里的「后悔药」:</p>
+
+        <div class="demo-slot" data-demo="ch07-06-gv-o"></div>
+
+        <table class="ktable">
+          <thead><tr><th>键</th><th>名字</th><th>干什么</th><th>典型时机</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>o</kbd></td><td>换端</td><td>光标跳到选区<strong>另一端</strong>,此后移动命令调整的是那一头</td><td>起点选多了/选少了 —— 换到起点那头去修剪</td></tr>
+            <tr><td><kbd>O</kbd></td><td>换端(块专用)</td><td>块模式里在<strong>同一行的两个角</strong>之间横跳</td><td>块选里调水平边界(行模式下 O 与 o 等价)</td></tr>
+            <tr><td><kbd>gv</kbd></td><td>重选</td><td>一键恢复<strong>上一次的选区</strong>(连模式一起)</td><td>同一块地上连续施工:y 看一眼 → <kbd>gv</kbd> → <kbd>d</kbd> 动手</td></tr>
+          </tbody>
+        </table>
+        <p><kbd>o</kbd> 的心智模型:选区像一根橡皮筋,两头各有一个端点,光标停在哪个端点上,移动命令就拽哪一头 —— <kbd>o</kbd> 就是把光标甩到对面去。<kbd>gv</kbd> 则解决了可视模式的一个痛点:每次施工完选区就没了,想再来一个动词得重圈 —— <kbd>gv</kbd> 让「圈一次、动多次」成为可能(下一次演示里它还会连击三连)。</p>
+
+        <h2>8. 选中后的动词菜单</h2>
+        <p>选区是名词,动词随叫随到。可视模式里所有在第 5 章学过的动词都可用,外加几个选区专属的。同一块选区,换个动词就是另一种施工:</p>
+
+        <div class="demo-slot" data-demo="ch07-07-operator-menu"></div>
+
+        <table class="ktable">
+          <thead><tr><th>动词</th><th>作用</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>d</kbd> / <kbd>x</kbd></td><td>删除选区</td><td>字符选区进字符寄存器,行选区进行寄存器(第 9 章伏笔)</td></tr>
+            <tr><td><kbd>c</kbd> / <kbd>s</kbd></td><td>删选区并进入插入</td><td>块选区上是「每行分别输入,Esc 统一生效」</td></tr>
+            <tr><td><kbd>y</kbd></td><td>复制选区</td><td>复制完选区解除 —— 想「复制后再删」用 <kbd>gv</kbd></td></tr>
+            <tr><td><kbd>U</kbd> / <kbd>u</kbd> / <kbd>~</kbd></td><td>选区转大写 / 转小写 / 逐字翻转</td><td>可视模式招牌动词,常量名改错大小写一秒救回</td></tr>
+            <tr><td><kbd>&gt;</kbd> / <kbd>&lt;</kbd></td><td>选区整体右移 / 左移一级缩进</td><td>行选区上最常用;<kbd>.</kbd> 可重复</td></tr>
+            <tr><td><kbd>J</kbd> / <kbd>g</kbd><kbd>J</kbd></td><td>选区所有行接成一行 / 无空格连接</td><td>参数列表横竖互转</td></tr>
+            <tr><td><kbd>r</kbd>{字符}</td><td>整块替换成同一字符</td><td>块选区上「整列涂掉」;块专属利器</td></tr>
+            <tr><td><kbd>:</kbd></td><td>对选区执行命令行命令</td><td>自动填好 <code>:'&lt;,'&gt;</code> 范围 —— 第 8 章区域替换的入口</td></tr>
+          </tbody>
+        </table>
+        <p>演示里的另一个主角是 <kbd>gv</kbd> 的连击节奏:<kbd>d</kbd> → <kbd>u</kbd> → <kbd>gv</kbd> → <kbd>c</kbd> → <kbd>u</kbd> → <kbd>gv</kbd> → <kbd>~</kbd> —— 圈一次地,连换三个动词试方案,这才是「选区是舞台」的完整含义。最后提一句语法层面的理解:可视模式相当于<strong>替你按下了动词并挂起,等你用选区充当名词</strong> —— 所以它和「动词+名词」语言并不冲突,是同一门语言的「先给宾语」语序。</p>
+
+        <h2>9. 选型决策:文本对象 / v / V / Ctrl-v / 多光标</h2>
+        <p>至此你有五种「圈定范围」的手段,加上 IDE 原生的多光标是六种。决策法则一条主线:<strong>按形状选工具</strong>:</p>
+        <table class="ktable">
+          <thead><tr><th>意图</th><th>首选</th><th>理由</th></tr></thead>
+          <tbody>
+            <tr><td>改/删一个词、一对引号、一个括号里的内容</td><td><kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 等文本对象</td><td>一句话说完,最快,不用看</td></tr>
+            <tr><td>动一大段不规则的文字,想先看清边界</td><td><kbd>v</kbd> + 移动圈地</td><td>眼见为实,边界可微调(o)</td></tr>
+            <tr><td>挪几行的缩进、合并几行、整块复制/删除</td><td><kbd>V</kbd></td><td>按行算账,整行为单位</td></tr>
+            <tr><td>批量注释/行尾追加/删一列 —— 「列」形状</td><td><kbd>Ctrl</kbd>+<kbd>v</kbd></td><td>矩形的表达力,多光标替不了它(列位置固定时)</td></tr>
+            <tr><td>多处散落的<strong>相同词</strong>各改一下</td><td>多光标(<kbd>g</kbd><kbd>b</kbd> / <kbd>Cmd</kbd>+<kbd>d</kbd>)或 <kbd>*</kbd>+<kbd>.</kbd>(第 8/10 章)</td><td>位置不构成规则形状,按「内容」圈更省</td></tr>
+          </tbody>
+        </table>
+        <p>块编辑与多光标的分界线值得单独说:块的选择单位是<strong>几何列</strong>(每行同一位置),多光标的选择单位是<strong>内容匹配</strong>(下一个相同词)。行尾统一加分号,块秒杀;把散落各处的 <code>foo</code> 都改成 <code>bar</code> 且每处还要微调,多光标或 <kbd>*</kbd>+<kbd>.</kbd> 更顺手。IDE 备注里有两边的具体键位。</p>
+        <p>再给一个「什么时候<strong>不该</strong>用可视模式」的提醒:改动只有两三处、且每处改法相同时,第 8、10 章的 <kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd> 组合(找下一处、重复上改)比圈选更快;改动一句话能说清(<kbd>c</kbd><kbd>i</kbd><kbd>"</kbd>)时,文本对象更快。可视模式吃的是「形状复杂」和「要看清」这两碗饭 —— 端好自己的碗,才不会觉得每个键都要背。</p>
+
+        <h2>10. 每日训练计划(30 分钟 × 3 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1–2,读 §1–§3;靶场练 <kbd>v</kbd>+移动圈地(<kbd>ve</kbd> <kbd>viw</kbd> <kbd>v$</kbd> <kbd>vf,</kbd>)与 <kbd>V</kbd>+<kbd>&gt;</kbd>/<kbd>&lt;</kbd></td><td>圈地不用想「我在哪个模式」</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1 + 练习 2</td><td>三模式互切零延迟;挪块四拍(V 扩 &gt; .)成型</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 3–5,读 §4–§6;块注释 → 块追加分号 → 块删列各 5 遍</td><td>Esc 前不慌,知道「延迟满足」</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 2 后半 + 练习 3</td><td>o 换端修剪 10 次全对</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>重放演示 6–7,读 §7–§9;抄一遍 §9 决策表</td><td>给出意图能报出首选工具</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:盲测毕业考</td><td>10 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>按形状选工具</strong>:一句话能说完的用文本对象,不规则范围用 <kbd>v</kbd>,按行算账用 <kbd>V</kbd>,「列」的形状才请出 <kbd>Ctrl</kbd>+<kbd>v</kbd>;</li>
+          <li><strong>块插入是延迟满足</strong>:<kbd>I</kbd>/<kbd>A</kbd> 打字时只有一行显示,<kbd>Esc</kbd> 才同时生效 —— 慌就输了;批量注释、行尾追加是它的两大主场;</li>
+          <li><strong>选区可召回、可换端</strong>:<kbd>gv</kbd> 一键重选上次范围(圈一次动多次),<kbd>o</kbd> 跳到选区另一头修剪起点 —— 圈错了不必推倒重来。</li>
+        </ol>
+        <p>选择的问题解决了,下一章解决「找」:查找与替换 —— <kbd>/</kbd>、<kbd>*</kbd> 与 <kbd>:s</kbd> 全家桶,批量重构的正主。可视模式给它们留了个接口:选中后按 <kbd>:</kbd> 的区域替换。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:三模式点名(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场任选一段 ≥10 行的代码。从普通模式出发,完成 20 组切换:<kbd>v</kbd> → <kbd>V</kbd> → <kbd>Ctrl</kbd>+<kbd>v</kbd> → <kbd>v</kbd>(退出)…… 每种模式里都动一动 <kbd>j</kbd><kbd>k</kbd><kbd>w</kbd><kbd>$</kbd>,观察选区形状差异。然后练互切免 Esc 路径:v 圈着圈着改 V,V 圈着圈着改 C-v。通过线:状态栏文字(VISUAL / VISUAL LINE / VISUAL BLOCK)与手指动作同步,不用低头看。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:注释马拉松 + 行尾补分号(10 分钟)</summary>
+          <div class="answer">
+            <p>造 10 行没分号的代码(或拿一段日志语句):①<kbd>Ctrl</kbd>+<kbd>v</kbd> 圈 10 行 → <kbd>$</kbd> → <kbd>A</kbd> → <code>;</code> → <kbd>Esc</kbd> 补完;②再 <kbd>Ctrl</kbd>+<kbd>v</kbd> 圈住分号列 → <kbd>d</kbd> 全删掉;③<kbd>Ctrl</kbd>+<kbd>v</kbd> 圈行 → <kbd>I</kbd> → <code>// </code> → <kbd>Esc</kbd> 注释全部;④块删取消注释。四连各做 3 遍。通过线:全程不慌「为什么只有一行变了」,Esc 节奏稳定。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:o 换端修剪(10 分钟)</summary>
+          <div class="answer">
+            <p>用 <kbd>v</kbd> 从行中间起手选到行尾(故意起点不对),然后 <kbd>o</kbd> 换到起点端,用 <kbd>w</kbd>/<kbd>b</kbd>/<kbd>e</kbd>/<kbd>f</kbd> 把起点修剪到目标位置,最后 <kbd>d</kbd>/<kbd>c</kbd> 施工。10 组。进阶:块模式下试 <kbd>O</kbd>,体会「同行两角横跳」和 <kbd>o</kbd>「对角跳」的区别(块模式里 <kbd>o</kbd> 跳到对角行,<kbd>O</kbd> 只换列)。通过线:修剪过程中能随时说出光标在选区哪一头。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>10 个任务先说按键再看答案:①批量给 8 行加 <code>// </code> 注释 ②8 行行尾批量补分号(行长不齐)③删掉对齐表格的第 2 列 ④把 4 行整体右移一级缩进 ⑤把选中的常量名转大写 ⑥复制一段后立刻删掉同一段 ⑦v 圈多了起点,修剪起点 ⑧把三行的 <code>todo</code> 列统一替换成 <code>done</code>(块)⑨把 5 行参数合成一行 ⑩选区上执行替换命令的按键。答案:C-v I // Esc / C-v $ A ; Esc / C-v 圈列 d / V jjj > / v e U / y 后 gv d / o + 移动 / C-v 圈块 c done Esc(或 r 逐个)/ V jjj J / 选中后按 :('&lt;,'&gt; 自动出现)。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 块插入没按 Esc,以为没生效</span>
+          <kbd>Ctrl</kbd>+<kbd>v</kbd> → <kbd>I</kbd> 之后只有光标行显示输入,其他行毫无反应 —— 新手此刻最常见的反应是乱按一气,把块弄坏。请把 <kbd>Esc</kbd> 当成块插入流程的<strong>最后一步</strong>而不是「退出键」:打完内容 → <kbd>Esc</kbd> → 所有行同时生效。自检口诀:块插入三段论「圈、打、Esc」,少一段都不算完。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 在可视模式里按 i 想打字</span>
+          可视模式里按 <kbd>i</kbd> 不会进入插入模式 —— 它在等一个文本对象(<kbd>v</kbd><kbd>i</kbd><kbd>w</kbd> 的 i!),按 <kbd>w</kbd> 之后发生的事是「把选区换成这个词」,屏幕看起来像「按键失灵」。想在选区上打字的是 <kbd>c</kbd>(删选区进入插入)。同理 <kbd>a</kbd> 在可视模式里也没意义。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 折行让块选区错位</span>
+          代码折行(soft wrap)显示成多个屏幕行时,<kbd>Ctrl</kbd>+<kbd>v</kbd> 的 <kbd>j</kbd>/<kbd>k</kbd> 按<strong>逻辑行</strong>移动,而屏幕上矩形看起来歪的;<kbd>g</kbd><kbd>j</kbd>/<kbd>g</kbd><kbd>k</kbd> 才按屏幕行走。IDE 里建议对代码文件关掉长行折行(或只对 markdown 开),块的直觉会稳很多。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 y 完选区没了,想再动一次得重圈</span>
+          <kbd>y</kbd>/<kbd>d</kbd>/<kbd>&gt;</kbd> 施完工选区自动解除,紧接着想「再对同一块做点什么」的人往往重新 <kbd>V</kbd><kbd>j</kbd><kbd>j</kbd> —— 其实 <kbd>gv</kbd> 一键召回。典型工作流:<kbd>y</kbd> 复制看看 → <kbd>gv</kbd> → <kbd>d</kbd> 删掉。把 gv 练成条件反射,可视模式的回合数直接减半。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li><kbd>v</kbd>/<kbd>V</kbd>/<kbd>Ctrl</kbd>+<kbd>v</kbd> 三种选择与块插入 <kbd>I</kbd>/<kbd>A</kbd>:VSCodeVim 全部原生支持,照本章用;块插入同样 Esc 后统一生效</li>
+              <li><strong>多光标 vs 块</strong>:原生 <kbd>Cmd</kbd>+<kbd>d</kbd> 选中下一个相同词、<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> 在下方添加光标(列形状);VSCodeVim 的 <kbd>g</kbd><kbd>b</kbd> 等价于 Cmd-d 添加下一个匹配光标</li>
+              <li>可视模式里 <kbd>Cmd</kbd>+<kbd>c</kbd> 会把选区送进<strong>系统剪贴板</strong>(比 <kbd>y</kbd> 多一条通路,第 9 章展开)</li>
+              <li>注意:VSCode 自己的 Cmd-f 搜索会与可视选区联动(找选中内容);块选择快捷键 Alt+Shift+拖拽 是 VSCode 原生的,与 Ctrl-v 二选一即可</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>IdeaVim 同样支持三种可视模式与块插入;选区会接入 IDEA 的高亮系统(状态栏显示 VISUAL / VISUAL BLOCK)</li>
+              <li>IDEA 原生列选择模式:<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>8</kbd>(Toggle Column Selection)—— 与 <kbd>Ctrl</kbd>+<kbd>v</kbd> 功能重叠,日常留一个就够</li>
+              <li>IDEA 的「多光标」是 <kbd>Alt</kbd>+<kbd>J</kbd>(添加下一个匹配选中),对应 VSCode 的 Cmd-d;块插入场景两者都建议优先 <kbd>Ctrl</kbd>+<kbd>v</kbd></li>
+              <li>mac 键位提醒:终端里 <kbd>Ctrl</kbd>+<kbd>v</kbd> 可能与终端粘贴冲突,IDE 内嵌 vim 插件无此问题;IdeaVim 里块可视化状态栏明确写 VISUAL BLOCK,低头可查</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>v</kbd> / <kbd>V</kbd> / <kbd>Ctrl</kbd>+<kbd>v</kbd></td><td>字符 / 整行 / 块选择</td><td><kbd>o</kbd> / <kbd>O</kbd></td><td>跳到选区另一端 / 块内同行换角</td></tr>
+            <tr><td><kbd>I</kbd>(块内)</td><td>块插入:每行块首打字,Esc 生效</td><td><kbd>A</kbd>(块内)</td><td>块追加:每行块尾打字,Esc 生效</td></tr>
+            <tr><td><kbd>$</kbd>(块内)</td><td>右边界拉到各行行尾</td><td><kbd>d</kbd> / <kbd>c</kbd> / <kbd>r</kbd>(块内)</td><td>整块删 / 逐行改 / 整块替成同字符</td></tr>
+            <tr><td><kbd>gv</kbd></td><td>召回上次选区</td><td><kbd>U</kbd> / <kbd>u</kbd> / <kbd>~</kbd></td><td>选区转大写 / 小写 / 翻转</td></tr>
+            <tr><td><kbd>&gt;</kbd> / <kbd>&lt;</kbd> / <kbd>J</kbd></td><td>选区缩进移动 / 合并行</td><td>选中后 <kbd>:</kbd></td><td>对选区执行命令(:'&lt;,'&gt; 前缀)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:按形状选工具(对象/v/V/块),块插入延迟满足(Esc 才发货),选区可召回可换端(gv / o)。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch06.html">← 第 6 章 · 插入与替换模式</a>
+          <a href="ch08.html">第 8 章 · 查找与替换 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch07.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>
