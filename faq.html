@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>附录 B · 常见陷阱与 FAQ — Vim 修炼场</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* 附录B 专用样式(assets/ 只读,故内联;只加不改全局基调) */
+    .faq-lead { color: rgb(var(--fg-muted)); font-size: 15.5px; }
+    section.drills details p { margin: 8px 0; }
+    section.drills details .answer { font-size: 15.5px; }
+    @media print {
+      .topbar, .toc, .read-toggle, .pager { display: none !important; }
+      body { background: #fff !important; }
+      section.drills details { border: 0.6pt solid #777; box-shadow: none; }
+      section.drills summary { font-size: 13px; }
+      section.drills details .answer { border-top: 0.6pt dashed #999; }
+      details { break-inside: avoid; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="apxb" data-ch="apxb">
+      <header class="ch-header">
+        <div class="ch-kicker">APPENDIX B · 常见陷阱与 FAQ</div>
+        <h1>FAQ:装备、疑难杂症与心态</h1>
+        <div class="ch-meta-line">15 问,按「装备 → 疑难 → 插件 → 心态」排列 · 兑现第 1 章埋下的两个「见附录 B」承诺</div>
+      </header>
+
+      <section class="lesson">
+        <h2>怎么用这一页</h2>
+        <p class="faq-lead">这一页收的是<strong>横跨多章</strong>的问题:装备(键盘、Esc、输入法)、按了没反应的疑难杂症、两个 IDE 插件的已知坑,以及学习曲线上的心魔。按键本身忘了怎么按,查 <a href="cheatsheet.html">附录 A 速查表</a>;某一章的概念想回炉,点答案里的章节链接。<strong>按症状找问题</strong> —— 每一问的标题就是你半夜会打给朋友的那句话。</p>
+      </section>
+
+      <section class="drills">
+        <h2>一、装备与手感</h2>
+        <details>
+          <summary>Q1 · Esc 太远了,小拇指够不着怎么办?(第 1 章承诺的详细步骤)</summary>
+          <div class="answer">
+            <p>主流解法是<strong>把大写锁定键(Caps Lock)改成 Esc</strong> —— 两个最难够到的键互换命运,vim 体验立刻质变。各平台做法:</p>
+            <p><strong>macOS</strong>( Ventura 及以后):系统设置 → 键盘 → 「键盘快捷键…」→ 「修饰键」→ 把「大写锁定键」选成 <code>Escape</code>;旧版 macOS 在 系统偏好设置 → 键盘 → 右下角「修饰键…」里,同样位置。只对当前键盘生效,外接键盘可单独设一套。</p>
+            <p><strong>macOS 进阶</strong>:装 <a href="https://karabiner-elements.pqrs.org/">Karabiner-Elements</a>(免费),可以做「短按 Caps = Esc、长按 Caps = Ctrl」的双功能映射 —— 一颗键同时解决 Esc 远和 Ctrl 远,vim 重度用户标配。</p>
+            <p><strong>Windows</strong>:用 PowerToys 的 Keyboard Manager 把 Caps Lock 重映射到 Escape;或注册表 Scancode Map(一次性导入)。</p>
+            <p>第 1 章说过,这里再强调一次:建议先按原味指法练一周再改 —— 手指知道自己够得着 Esc,和实际改键,是两码事。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q2 · 中文输入法老忘切,按 d 弹出拼音怎么办?(第 1 章承诺的根治配置)</summary>
+          <div class="answer">
+            <p>症状:插入模式打完中文,<kbd class="escape">Esc</kbd> 回普通模式,输入法还停在中文 —— 下一个 <kbd>d</kbd> 变成拼音候选。根治思路:<strong>退出插入模式时自动把输入法切回英文</strong>。</p>
+            <p><strong>VSCode(VSCodeVim)官方方案</strong>:README 提供了四个 <code>vim.autoSwitchInputMethod.*</code> 设置,搭配任一切换工具使用。官方示例走 <a href="https://github.com/daipeihust/im-select">im-select</a>(开源命令行工具,<code>brew install im-select</code> 或参照其仓库说明):先切到你的英文输入法,在终端跑一次 <code>im-select</code>,输出的就是你的 key(US 布局是 <code>com.apple.keylayout.US</code>,ABC 是 <code>com.apple.keylayout.ABC</code>),然后写进 settings.json:</p>
+<pre><code>"vim.autoSwitchInputMethod.enable": true,
+"vim.autoSwitchInputMethod.defaultIM": "com.apple.keylayout.US",
+"vim.autoSwitchInputMethod.obtainIMCmd": "/usr/local/bin/im-select",
+"vim.autoSwitchInputMethod.switchIMCmd": "/usr/local/bin/im-select {im}"</code></pre>
+            <p>README 明确说任何第三方切换程序都行:第 1 章提过的 <code>macism</code> 同样可用,把两条命令的路径换成 macism 即可(<code>{im}</code> 占位符保留)。装好配置后,<kbd class="escape">Esc</kbd> 一按,输入法自动回英文 —— 这是中文用户「值回票价」排行第一的配置。</p>
+            <p><strong>IDEA(IdeaVim)</strong>:IdeaVim 官方没有对等的 autoSwitchInputMethod 设置;通用替代是 macOS 的「自动切换到文稿的输入法」(系统设置 → 键盘)加上手动肌肉记忆,或用输入法自身的快捷键(多数中文输入法支持 Shift 切中英)兜底。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q3 · 要不要把方向键禁掉逼自己戒断?</summary>
+          <div class="answer">
+            <p>不必须,但值得试。两个插件和 IDE 都能改键或用扩展禁掉方向键,强制期通常三天到一周 —— 但「物理戒断」容易变成「效率归零」。更推荐本站各章的训练法:<strong>时间盒</strong>。每天 30 分钟,在时间盒内绝对不碰方向键(把鼠标推远一点就够了),时间盒外随意 —— 两周后时间盒内的习惯会自己溢出到全天。第 2 章 §9、第 3 章的 3 天计划都是这个思路。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q4 · 笔记本键盘 / 没有 Esc 的键盘能用吗?</summary>
+          <div class="answer">
+            <p>能。hjkl 对键盘零要求,笔记本键盘反而因为键程短更跟手。真正受影响的只有两处:①Esc 位置(见 Q1 改 Caps);②个别 61 键配列把方向键并入了层,误触方向键会拆散撤销单元(<a href="chapters/ch10.html">第 10 章</a>陷阱一),改键后即消失。先把手头键盘用顺,再考虑换键盘 —— 换键盘救不了指法,时间盒才行。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="drills">
+        <h2>二、模式与编辑疑难杂症</h2>
+        <details>
+          <summary>Q5 · 插入模式里还能用 Cmd-c / Cmd-v / Cmd-z 吗?</summary>
+          <div class="answer">
+            <p>能,而且推荐留着。第 12 章核对过官方文档:macOS 上 Cmd 系快捷键 VSCodeVim 不拦截,IdeaVim 同样放行 —— 插入模式里你依然是「半个 IDE 用户」,Cmd-v 粘贴、Cmd-z 撤销都好使。两点留意:①Windows/Linux 上被接管的是 Ctrl 系(用 <code>vim.handleKeys</code> / <code>sethandler</code> 仲裁,见 <a href="chapters/ch12.html">第 12 章 §8</a>);②vim 侧的复制粘贴体系(寄存器、<code>"+p</code>)在<a href="chapters/ch09.html">第 9 章</a>,两套并存不冲突 —— 小改用 vim 键,跨应用大段搬运用 Cmd-v,顺手就好。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q6 · 为什么我的 `.` 忽然不重复了?</summary>
+          <div class="answer">
+            <p><kbd>.</kbd> 只记<strong>最后一次修改</strong>,而它比想象中健忘:任何新的修改命令(dd、x、ciw…)都会覆盖这段记忆;插入模式里只要中途用了方向键,一次插入会被拆成多个单元,<kbd>.</kbd> 只重复最后一小段。排查顺序:①是不是刚按过别的修改键(记忆被覆盖,正常);②上次插入里是不是混了方向键(<a href="chapters/ch10.html">第 10 章</a>陷阱一);③想重复的是「移动」?<kbd>.</kbd> 不记移动 —— 移动用 <kbd>;</kbd>(重复 f/t)或宏。规律记一句:<strong>`.` 记动词,不记名词</strong>。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q7 · 可视模式选少了/选多了,一调整选区就没了?</summary>
+          <div class="answer">
+            <p>选区是<strong>活的</strong>:还在可视模式里时,直接用移动键(<kbd>w</kbd>、<kbd>j</kbd>、<kbd>f</kbd>{字符}…)伸缩它;要修剪另一头,按 <kbd>o</kbd> 把光标甩到对面端点再收。已经施工完(按了 d/c/y)选区确实会消失 —— 但 <kbd>gv</kbd> 一键召回上一次选区,「圈一次、动多次」;<a href="chapters/ch07.html">第 7 章 §7</a> 有完整演示。另一个「选不完」:想选的形状是矩形(每行同列)时字符选会带上一堆不要的 —— 那是块选 <kbd>Ctrl</kbd>+<kbd>v</kbd> 的主场,同章 §4。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q8 · p 粘贴出来位置/缩进全乱了?</summary>
+          <div class="answer">
+            <p>两个独立的原因,分开查:<strong>①位置不对</strong> —— vim 的 p 有「形状语义」(<a href="chapters/ch05.html">第 5 章</a>):字符寄存器贴在光标后,行寄存器(<kbd>y</kbd><kbd>y</kbd>/<kbd>d</kbd><kbd>d</kbd> 复制的)整行贴到下一行;贴错方向就换 <kbd>P</kbd>(贴前面)。<strong>②缩进/格式乱</strong> —— 这多半是 IDE 的「粘贴时自动格式化」在抢活,大段粘贴时尤其明显;IDE 插件环境下可以先粘到空行再用 <kbd>=</kbd>(格式化,第 5 章)收拾,或临时用 IDE 的「粘贴为纯文本」命令。跨应用粘贴记得走系统剪贴板 <code>"+p</code>(<a href="chapters/ch09.html">第 9 章</a>)。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q9 · 撤销一步撤太多 / 撤销半天撤不完?</summary>
+          <div class="answer">
+            <p>vim 的撤销单元 = <strong>一次连续插入</strong>(从进插入模式到按 Esc)或<strong>一条完整命令</strong>(dd、ciw、:s 都各算一条)。感觉「撤太多」:多半是那次插入太长了 —— 停留插入模式的时长就是撤销的粒度,勤退勤进(<a href="chapters/ch06.html">第 6 章</a>的「停留时长指标」)。感觉「撤不完」:方向反了,<kbd>Ctrl</kbd>+<kbd>r</kbd> 是重做;另外 <code>:s</code> 与 <code>:g</code> 是<strong>整条命令一个单元</strong>,一条 <code>:%s</code> 撤销就是全文件一起回滚 —— 这是特性不是 bug(<a href="chapters/ch10.html">第 10 章</a>的粒度表)。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="drills">
+        <h2>三、插件与 IDE 的已知坑</h2>
+        <details>
+          <summary>Q10 · 两个插件最容易踩的坑,一张清单</summary>
+          <div class="answer">
+            <p>按出现频率排:<strong>①相对行号</strong> —— VSCodeVim 没有行号设置,VSCode 用户要去编辑器原生 <code>editor.lineNumbers: relative</code> 找(IDEA 才是 <code>set relativenumber</code>);<strong>②改了 .ideavimrc 不生效</strong> —— 它是启动读入的文件,看通知栏的 reload 提示或重启;<strong>③冲突弹窗选了不落盘</strong> —— IdeaVim 的「这个键给谁」弹窗在插件更新后可能重弹,判完立刻把 <code>sethandler</code> 行写进配置文件;④surround 在 VSCodeVim 默认已开,别在设置里瞎找;⑤本站演示若在 file:// 下空白,开个本地 server(<code>python3 -m http.server</code>)。以上每条的展开在 <a href="chapters/ch12.html">第 12 章</a> pitfalls 与各章陷阱区。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q11 · Ctrl-a / Ctrl-f 按下去是 IDE 的行为,「失灵」了?</summary>
+          <div class="answer">
+            <p>不是失灵,是<strong>一个键两个主人</strong>:Ctrl-a 在 vim 里是数字加一,在 IDEA 里(Windows/Linux 键位)是全选;Ctrl-f 在 vim 里是下翻页,在 VSCode 里是查找。两边都有一行式仲裁:IDEA 写 <code>sethandler &lt;C-a&gt; a:ide</code>(把键判给 IDE)或 <code>a:vim</code>(留给 vim);VSCode 写 <code>"vim.handleKeys": {"&lt;C-f&gt;": false}</code>(false = 不归 vim 管)。判给谁的原则:谁的功能在你的工作流里更常用判给谁 —— 完整清单与示例见 <a href="chapters/ch12.html">第 12 章 §8</a> 的冲突仲裁表。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q12 · 宏录砸了,文件被改得乱七八糟?</summary>
+          <div class="answer">
+            <p>先按 <kbd>u</kbd> —— 宏的每一轮回放都进撤销栈,连发 30 次砸了 30 处,几个 <kbd>u</kbd>(或 IDE 的撤销)就回到录前。然后诊断而不是重录:<code>:reg</code> 看寄存器里宏的按键序列,定位是哪一步跑偏(最常见:宏里用了 <kbd>g</kbd><kbd>g</kbd>/<kbd>G</kbd> 这类绝对跳转,或结尾忘了推进 <kbd>j</kbd>)。小修不必重录:<strong>录制中按 <kbd>q</kbd><kbd>A</kbd> 是往寄存器 a 追加</strong>,补个尾巴就行。完整修复手册在 <a href="chapters/ch10.html">第 10 章 §8</a>「宏调试修复」。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q13 · 学这套要不要顺手装个真 Vim / Neovim?</summary>
+          <div class="answer">
+            <p>现在不要。本站的目标是<strong>在 IDE 里用 Vim</strong> —— VSCodeVim / IdeaVim 已经覆盖了「编辑语言」的全部核心(移动、文本对象、寄存器、宏、块选),而 IDE 的索引、重构、调试一样不丢。终端 Vim/Neovim 的增量价值在终端工作流与配置工程化,那是另一门课(PLAN 里明确列为非目标)。路线建议:先把本站 13 章用熟,某天你发现「想在 ssh 的服务器上也能这么改文件」时,再去装真 Vim —— 那时所有按键肌肉记忆直接平移,入门成本只剩配置。第 0 章的路线图就是这个顺序。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="drills">
+        <h2>四、心态与学习曲线</h2>
+        <details>
+          <summary>Q14 · 学了一两周,写码反而更慢了,要放弃吗?</summary>
+          <div class="answer">
+            <p>不仅正常,而且是<strong>必经的「退化期」</strong> —— 旧技能(鼠标)被压制、新技能还没长全,效率曲线先跌后涨。第 0 章给过四周曲线:第一周靠生存七键活下来,第二周移动篇让手回家,第三周「编辑语言」开始说整句,第四周语法成瘾 —— 退化期正好卡在第二到第三周之间,你现在就在谷底附近。两个止损动作:①回到各章的<strong>时间盒训练</strong>(每天 30 分钟,盒内零鼠标,盒外不设限 —— 别全天硬扛);②拿 <a href="chapters/ch13.html">第 13 章</a>的案例在真实代码里跑一遍,「一条按键顶鼠标五次」的爽感是熬过谷底的燃料。绝大多数人在 3–4 周回到原速,之后一路向上。</p>
+          </div>
+        </details>
+        <details>
+          <summary>Q15 · 学到第 10 章,前面章节的键全忘了?</summary>
+          <div class="answer">
+            <p>忘是常态,重查三次的键基本就刻进肌肉了。本站为此准备了两层检索:<strong>忘「怎么按」</strong> —— <a href="cheatsheet.html">附录 A 速查表</a>按场景分组,14 组表格每行注明出处章节,打印出来贴手边;还会忘就点回那一章重看演示 —— 动画比重看文字快得多。<strong>忘「该用什么」</strong> —— 每章末尾的「本章速记」表和「三件事」就是为回炉设计的,扫一眼比翻正文快十倍。真正的顺序是:用了→忘了→查了→再忘→再查→长在手上了 —— 查表不是失败,是学习曲线的一部分(但别忘了第 0 章的忠告:表是给会的人省时间的,入门靠的还是一章一章过)。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>这一页的三个忠告</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 配置只抄不改,改了不验证</span>
+          本页与第 12 章的所有配置,抄进真实 IDE 后都要<strong>逐项按一下对应键验证</strong>再收工 —— 「看起来写了」和「生效了」隔着一次验证的距离。配置是契约,验证是签字。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 疑难先怀疑模式,再怀疑插件</span>
+          按 d 出拼音、按键没反应、选区行为怪 —— 十有八九是<strong>当前模式和你以为的不一样</strong>(还停在插入/可视)。低头看一眼状态栏的模式指示,再想别的。这个习惯比任何配置都值钱。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 在错误的环境里排查</span>
+          本站演示空白 → 先开本地 server;键位行为和教程不一样 → 先确认插件版本与配置是否重载;输入法自动化不生效 → 先在终端手动跑一次切换命令。环境对了,问题才叫问题。
+        </div>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="cheatsheet.html">← 附录 A · 快速参考手册</a>
+          <a href="index.html">回到首页 · 学习路线 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="assets/js/nav.js"></script>
+  <script src="assets/js/progress.js"></script>
+  <script>
+    /* 打印前自动展开全部 FAQ 折叠项(否则 closed 的 details 不进打印) */
+    window.addEventListener('beforeprint', function () {
+      document.querySelectorAll('details').forEach(function (d) { d.open = true; });
+    });
+  </script>
+</body>
+</html>

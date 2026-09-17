@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 11 章 · 多文件与窗口 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch11" data-ch="ch11">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 11 · 进阶篇 外</div>
+        <h1>多文件与窗口:buffer 思维与分屏导航</h1>
+        <div class="ch-meta-line">预计阅读 25 分钟(含练习约 1 小时)· 前置:第 3、9 章 · 本章演示 4 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>建立 Vim 多文件的<strong>三层心智模型</strong>:缓冲区(文件在内存的分身)、窗口(取景框)、标签页(桌面)—— 谁装内容、谁管画面,一张表分清</li>
+          <li>掌握缓冲区流:<code>:ls</code> 看清单、<code>:b{n}</code> 按号切、<code>:e</code> 开新档,以及 <kbd>Ctrl</kbd>+<kbd>^</kbd> 两文件一键乒乓</li>
+          <li>学会分屏:<code>:sp</code> / <code>:vs</code> 与 <kbd>Ctrl</kbd>+<kbd>w</kbd> 全家(选窗、轮换、只留此窗、均分),并理解<strong>分屏共享同一缓冲区</strong></li>
+          <li>认识标签页的真实定位(布局工作区,不是文件列表)与 quickfix 清单驱动导航(<code>:vimgrep</code> + <code>:cn</code>)</li>
+          <li>划清<strong>「IDE 管找,vim 管改」</strong>的分工:文件跳转、符号跳转、gd 定义跳转交接给 IDE,vim 接手落位后的加工</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 单文件的尽头:三个概念先分家</h2>
+        <p>前十章的所有功夫都在一个文件里。真实的工作不是这样的:改一个函数,要先看它的定义、再对照调用处、再瞥一眼配置文件、最后回到测试 —— <strong>写代码的一半时间花在文件之间穿梭</strong>。鼠标用户穿梭靠点标签、点分屏、点搜索框;Vim 给了一套自己的词汇,而这套词汇最劝退新人的地方是:它把「文件」拆成了三个概念,很多人用了多年都没分清。</p>
+        <p>一次分清,终身受益:<strong>缓冲区(buffer)是文件在内存里的分身</strong> —— 你真正编辑的对象,每个打开的文件对应一个;<strong>窗口(window)是取景框</strong> —— 屏幕上的一块玻璃,透过它看某个缓冲区,几块玻璃可以看同一个缓冲区;<strong>标签页(tab)是桌面</strong> —— 一整屏取景框的编组,换个桌面换一整套布局。一句话记住:<strong>内容住在缓冲区里,窗口和标签页都只是看它的方式</strong> —— 关掉窗口和标签页,文件毫发无伤,缓冲区里随叫随到。</p>
+        <p>IDE 用户的直觉正好可以翻译过来:VSCode / IDEA 里每打开一个文件也是一个「编辑器实例」,标签栏显示的是你看过哪些 —— Vim 的缓冲区就是这些实例的集合,只是<strong>它默认不给你标签栏</strong>,你要用命令(或插件)去列出、去切换。这个「默认不给」是哲学不是吝啬:文件一多,标签栏必然溢出,而 <code>:ls</code> + <code>:b</code> 加补全的效率不受文件数影响 —— 先把缓冲区思维建立起来,再谈要不要标签。</p>
+        <p>Vim 社区里长期并存两大流派,知道流派的存在比站队更重要:<strong>缓冲区流</strong>派全部文件待在缓冲区里,切换靠 :b 与 Ctrl-^,屏幕永远干净,适合同时开二三十个文件的重度重构;<strong>标签页流</strong>派每个文件一个 tab,视觉直观、可点击,适合同时只碰三五个文件的日常开发。终端 Vim 用户偏前者,IDE 插件用户偏后者 —— 因为 VSCode / IDEA 的标签栏本来就好用,gt/gT 又直接映射过去。务实的选择是混合:三五个常用文件留在标签栏里当「书签」,大量偶尔一瞥的文件用 :b 随开随切、不开标签,两边各取所长。</p>
+
+        <h2>2. 缓冲区::ls 看号,:b 按号切</h2>
+        <p>缓冲区流的工作节奏极简:<code>:ls</code> 列出所有缓冲区(每行一个号 + 文件名 + 状态字母),<code>:b{n}</code> 按号切换,<code>:e 文件名</code>(edit)打开新档 —— 文件名可以只打前几个字符按 <kbd>Tab</kbd> 补全。看一遍完整往返:</p>
+
+        <div class="demo-slot" data-demo="ch11-01-buffers"></div>
+
+        <p>演示里藏着一个容易错过的细节:<code>:b1</code> 切回 main.js 时,<strong>光标还停在你离开时的位置</strong> —— 每个缓冲区各自记着自己的光标、滚动位置,甚至各自的撤销历史。这就是缓冲区流的体验底座:文件之间切换不是「重新打开」,是「回到原地」,心理成本近乎零。两个实用补充:①<code>:b</code> 后面也可以接<strong>文件名片段</strong>(如 <code>:b util</code>,Tab 补全),比记号更顺手;②<code>:bd</code>(bdelete)把缓冲区从清单里真正请出去 —— 文件不再占位,但注意未保存的修改会拦你(§7)。</p>
+        <p>看懂 <code>:ls</code> 清单里的状态字母,是缓冲区流的「识字课」:</p>
+        <table class="ktable">
+          <thead><tr><th>字母</th><th>含义</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>%</code></td><td>当前缓冲区</td><td>光标所在的窗口正看着它</td></tr>
+            <tr><td><code>#</code></td><td>交替缓冲区(上一个)</td><td>Ctrl-^ 的往返对象,§3 的主角</td></tr>
+            <tr><td><code>a</code></td><td>活跃</td><td>正显示在某个窗口里;<code>h</code> 则是隐藏 loaded 未显示</td></tr>
+            <tr><td><code>+</code></td><td>有未保存修改</td><td>关它之前 Vim 会拦 —— 见 §7 与陷阱一</td></tr>
+            <tr><td><code>-</code></td><td>不可修改</td><td>只读文件之类,<code>:w!</code> 才能强写</td></tr>
+          </tbody>
+        </table>
+
+        <h2>3. Ctrl-^:两文件乒乓</h2>
+        <p>多文件编辑的最高频形态其实是<strong>就两个文件</strong>:一个接口一个实现、一个模板一个数据、一个测试一个源码。这种「对照抄代码」的场景,Vim 给了专用键:<kbd>Ctrl</kbd>+<kbd>^</kbd>(Ctrl 加数字 6,也叫 Ctrl-6),在<strong>当前缓冲区与交替缓冲区(# 号那个,也就是你上一个待过的文件)</strong>之间一键往返 —— 演示 1 的后三步就是它:切过去、切回来、再切过去,比 <code>:b{n}</code> 省一半按键,而且<strong>不用记号</strong>。</p>
+        <p>命令行形态是 <code>:b#</code>,与按键等价。要留意「上一个」是动态的:如果你从 A 切到 B 又切到 C,此刻 Ctrl-^ 在 C 与 B 之间乒乓(A 变成了更早的历史)—— 三文件以上的往返,老实 <code>:ls</code> 看号或 <code>:b 名字</code> 补全。一个 IDE 翻译:VSCode 的 <kbd>Ctrl</kbd>+<kbd>Tab</kbd>、IDEA 的 <kbd>Cmd</kbd>+<kbd>e</kbd>(最近文件)是同类思想,IDE 插件环境下两边任选,手感都顺。</p>
+
+        <h2>4. 窗口::sp / :vs 与 Ctrl-w 全家</h2>
+        <p>窗口解决「想同时看两处」:上下分屏 <code>:sp</code>(split),左右分屏 <code>:vs</code>(vsplit)。分屏后光标留在原来的窗口,焦点(哪个窗口接收按键)靠 <kbd>Ctrl</kbd>+<kbd>w</kbd> 前缀调动 —— 它是窗口世界的「名字空间前缀」,像 <code>"</code> 之于寄存器、<code>g</code> 之于扩展命令:</p>
+
+        <div class="demo-slot" data-demo="ch11-02-split"></div>
+
+        <p>这个演示最重要的画面不在按键里,而在 <kbd>g</kbd><kbd>g</kbd> 那一步:<strong>在下窗口加的字,上窗口同步出现</strong> —— 因为两个窗口透过两块玻璃看的是<strong>同一个缓冲区</strong>。想两侧看不同文件?分屏后在下窗口 <code>:e 另一个文件</code>,或直接 <code>:sp 另一个文件</code> 一步到位。窗口键位表(都以 Ctrl-w 开头):</p>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>按键</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></td><td>按方向选窗</td><td><kbd>w</kbd> / <kbd>W</kbd></td><td>轮换焦点(正 / 反)</td></tr>
+            <tr><td><kbd>o</kbd></td><td>只留当前窗口</td><td><kbd>c</kbd></td><td>关当前一扇窗(= <code>:q</code>)</td></tr>
+            <tr><td><kbd>s</kbd> / <kbd>v</kbd></td><td>再分一扇(水平 / 垂直)</td><td><kbd>_</kbd> / <kbd>|</kbd></td><td>当前窗纵向 / 横向最大化</td></tr>
+            <tr><td><kbd>=</kbd></td><td>所有窗口恢复均分</td><td><kbd>+</kbd> <kbd>-</kbd> <kbd>&gt;</kbd> <kbd>&lt;</kbd></td><td>微调窗口尺寸</td></tr>
+          </tbody>
+        </table>
+        <p>经验法则两条:①<strong>分屏是临时脚手架</strong> —— 对照时 <code>:sp</code> 立起来,用完 <kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>o</kbd> 一键拆干净,别让屏幕长期挂着五六扇窗(焦点迷路是分屏最大的痛);②分屏数量以<strong>两到三扇</strong>为限,要同时看更多,该上的是标签页或 IDE 的多显示器,不是第八扇窗。</p>
+        <p>值得专门练熟三个分屏场景。一是<strong>接口与实现对照</strong>:上窗看类型定义或函数签名,下窗写实现 —— <code>:sp 文件名</code> 一步开两个文件,签名里的参数名抬头可见,不用来回切。二是<strong>长文件头尾对照</strong>:同一个文件 <code>:sp</code> 分两扇,上窗看函数开头的变量声明,下窗改函数尾部的逻辑 —— 这正是「同一缓冲区两块玻璃」设计的最大红利,普通编辑器要靠迷你地图凑合。三是<strong>改一处、验一处</strong>:左窗改测试,右窗跑代码,或左窗改模板、右窗看数据。三个场景的共同点是「眼睛在两处之间高频往返」—— 凡是要回头看的,就该并排放,而不是靠记忆。</p>
+
+        <h2>5. 标签页:一桌多屏,不是文件列表</h2>
+        <p>标签页(tab)在 Vim 里的语义与浏览器不同,这点必须先讲清:浏览器的 tab ≈ 一个文件,而 Vim 的 tab ≈ <strong>一整桌窗口布局</strong> —— 每个标签页里可以有自己的一组分屏。它真正的主场是「工作区切换」:桌一是「前端调试布局」(左边组件右边样式),桌二是「写文档布局」(单窗全屏),<code>gt</code> 一键换桌。当然,每桌放一个文件的简单用法也完全成立:</p>
+
+        <div class="demo-slot" data-demo="ch11-03-tabs"></div>
+
+        <p>键位速记:<kbd>g</kbd><kbd>t</kbd> / <kbd>g</kbd><kbd>T</kbd> 下一个 / 上一个标签页(循环),<code>{n}gt</code> 直达第 n 个,<code>:tabs</code> 看清单,<code>:tabe 文件</code> 新开,<code>:tabc</code> 关闭,<code>:tabo</code> 只留当前。与缓冲区的分工一句话:<strong>缓冲区是「开着哪些文件」(内容层),标签页是「怎么摆着看」(布局层)</strong> —— 关掉标签页文件还在缓冲区(演示最后强调的),反过来关缓冲区它在所有窗口里消失。日常多文件主力是缓冲区 + Ctrl-^;标签页留给「几套布局来回切」的场景;把二十个文件堆成二十个标签页当文件列表用,是最常见的用法错位(陷阱三)。</p>
+
+        <h2>6. quickfix:清单驱动的导航</h2>
+        <p>最后一层导航不按「文件」组织,按「问题」组织。quickfix 是 Vim 内置的<strong>问题清单</strong>:任何「一组文件位置」—— 搜索结果、编译错误、替换预览 —— 都可以装进这份清单,然后 <code>:cn</code>(next)逐条跳转。装东西最常用的是 <code>:vimgrep</code>:</p>
+
+        <div class="demo-slot" data-demo="ch11-04-quickfix"></div>
+
+        <p>完整工作流四步:<code>:vimgrep /TODO/ *.js</code> 收清单 →(可选)<code>:copen</code> 打开清单窗(分隔在底部的可导航列表)→ <code>:cn</code> / <code>:cp</code> 逐条消化 → <code>:cclose</code> 收窗。清单窗本身是个特殊缓冲区:里面 <kbd>j</kbd><kbd>k</kbd> 移动、<kbd>Enter</kbd> 跳到光标那条,按 <kbd>Enter</kbd> 后焦点自动回代码窗 —— 想看清单就 <code>:copen</code>,想跳就 <code>:cn</code>,两套入口随意混用。除搜索外,它的另一大来源是编译输出(<code>:make</code> 后错误自动进清单,<code>:cn</code> 逐个错误跳),所以老 Vim 用户修编译错误从不看日志翻行号 —— 全在 quickfix 里跳。IDE 对照:<strong>VSCode / IDEA 的 Problems 面板、搜索结果的逐条跳转(F8 / Enter)</strong>,就是图形化的 quickfix;在 IDE 插件里 <code>:vimgrep</code> 可用,但全局搜索交给 IDE 原生(<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>f</kbd>)通常更快 —— 这正是 §8 分工哲学的又一例。</p>
+        <p>quickfix 与<a href="ch10.html">第 10 章</a>的宏是天作之合。清单里几十条同类的活(几十个 TODO 要加同一种标记、几十处旧 API 调用要同款改造),逐条「改 + <code>:cn</code>」未免枯燥 —— 录一个<strong>「加工 + :cn」结尾的宏</strong>(比如 <kbd>q</kbd><kbd>a</kbd> 加工 <kbd>Esc</kbd> 然后命令行 <code>:cn</code> 回车 <kbd>q</kbd>),然后 <code>30@a</code>:宏每执行一轮就改一条、自动跳下一条,清单消化变成了连发。注意这正好满足宏的三纪律:结尾自动推进(靠 :cn)、全程相对导航(quickfix 记着位置,不依赖光标绝对坐标)、连发前先试一发 —— 第 10 章的设计原则在跨文件场景里原样生效。</p>
+
+        <h2>7. 保存与会话:批量收尾</h2>
+        <p>多文件之后,保存也要批量版:<code>:w</code> 存当前,<code>:wa</code>(write all)存全部,<code>:wqa</code>(或 <code>:xa</code>)存全部并退出,<code>:qa</code> 全部退出。有一条护栏必须知道:<strong>有未保存修改(清单里的 + 号)的缓冲区,会拦住 :q / :qa</strong> —— Vim 提示你确认,这是防止半天工作一键蒸发;真想丢弃,用带感叹号的 <code>:qa!</code>(全部不保存退出)或 <code>:e!</code>(重读文件、丢弃本文件修改)—— 感叹号是「我知道我在干什么」的显式声明。</p>
+        <p>顺带一个影响体验的选项:<strong>隐藏缓冲区</strong>(<code>set hidden</code>)。默认情况下,带着未保存修改的缓冲区<strong>不许切换</strong>(必须先 :w 或 :q)—— 老派但烦人;开了 hidden 就能随便切,修改跟着缓冲区走,退出时统一收尾。终端 Vim 推荐开;IDE 插件则各有默认(VSCodeVim 跟随 VSCode 的自动保存体系,IdeaVim 通常也放行),体感上「切换不被保存卡住」在 IDE 里基本是默认事实 —— 这也是 IDE 与终端 Vim 少有的、IDE 更体贴的地方。纪律一句话:改完就 <kbd>:w</kbd>(或交给 IDE 自动保存),别让 + 号积少成多。</p>
+
+        <h2>8. IDE 分工:「找到」靠 IDE,「改」靠 Vim</h2>
+        <p>在 IDE 里用 Vim,最重要的战略判断是分清两件事:<strong>定位(去哪)与编辑(改什么)</strong>。定位这块,IDE 的语义引擎不可替代 —— 文件名跳转 <kbd>Cmd</kbd>+<kbd>p</kbd>、符号跳转 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>o</kbd>、定义跳转 <kbd>Cmd</kbd>+<kbd>b</kbd>(Vim 键 <kbd>g</kbd><kbd>d</kbd>,IdeaVim 亦可)、引用查找、调用层级 —— 这些都基于代码索引,vim 的 <code>:vimgrep</code> 纯文本搜索比不了。<strong>把它们交给 IDE,一个键都不用抢</strong>。</p>
+        <p>而定位之后的<strong>加工</strong>,才是前十章功夫的主场:跳到定义后 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 改名、<kbd>d</kbd><kbd>a</kbd><kbd>(</kbd> 拆参数、宏批量收拾、<code>:s</code> 区域替换 —— IDE 的编辑器在这些操作上完全比不过 vim 层。组合起来的节奏是:<kbd>Cmd</kbd>+<kbd>p</kbd> 到文件 → <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>o</kbd> 到函数 → <kbd>g</kbd><kbd>d</kbd> / <kbd>Cmd</kbd>+<kbd>b</kbd> 看定义 → vim 键加工 → <kbd>Cmd</kbd>+<kbd>e</kbd>(IDEA 最近文件)/ <kbd>Ctrl</kbd>+<kbd>^</kbd> 回来继续。判断某个动作归谁管,只问一句:<strong>它需要「理解代码」吗?</strong>需要就是 IDE 的;只是「按键与文本」就是 vim 的。想通这一点,IDE 与 vim 不再打架,而是流水线上的两站。</p>
+
+        <h2>9. 决策表:跨文件场景用哪个</h2>
+        <table class="ktable">
+          <thead><tr><th>场景</th><th>首选</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>就两个文件来回对照</td><td><kbd>Ctrl</kbd>+<kbd>^</kbd></td><td>不用记号,一键乒乓</td></tr>
+            <tr><td>开着的文件多了,来回切</td><td><code>:ls</code> + <code>:b 名字</code>(Tab 补全)</td><td>缓冲区流,数量不敏感</td></tr>
+            <tr><td>想同时看两处(同文件或两文件)</td><td><code>:sp</code> / <code>:vs</code></td><td>两三扇为限,<kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>o</kbd> 收场</td></tr>
+            <tr><td>几套窗口布局来回切(调试 / 写文档)</td><td>标签页 <code>:tabe</code> + <kbd>g</kbd><kbd>t</kbd></td><td>tab 是布局不是文件</td></tr>
+            <tr><td>按内容找一批位置逐个处理</td><td><code>:vimgrep</code> + <code>:cn</code></td><td>IDE 里全局搜索 + 结果跳转同构</td></tr>
+            <tr><td>按语义找(定义 / 引用 / 文件 / 符号)</td><td>IDE:<kbd>Cmd</kbd>+<kbd>p</kbd> / <kbd>g</kbd><kbd>d</kbd> / <kbd>Cmd</kbd>+<kbd>b</kbd></td><td>vim 不抢这滩活(§8)</td></tr>
+            <tr><td>收尾保存</td><td><code>:wa</code> / <code>:wqa</code></td><td>+ 号缓冲区会拦 :qa,见陷阱一</td></tr>
+          </tbody>
+        </table>
+
+        <h2>10. 每日训练计划(30 分钟 × 2 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1–2,读 §1–§4;开两个真实文件练 :ls / :b / Ctrl-^ 二十个来回</td><td>Ctrl-^ 不假思索</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1 + 练习 2</td><td>:b 补全与 Ctrl-w 选窗不看备忘</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 3–4,读 §5–§9;给项目跑一遍 :vimgrep /TODO/ 消化三条</td><td>:cn 节奏成型</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 3 + 练习 4(盲测)</td><td>10 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>内容住在缓冲区里</strong>:窗口和标签页只是取景框 —— 关掉它们文件无恙;<code>:ls</code> 看号、<code>:b</code> 切换,多文件主力是缓冲区流 + <kbd>Ctrl</kbd>+<kbd>^</kbd> 乒乓;</li>
+          <li><strong>分屏共享同一缓冲区</strong>:<code>:sp</code> 两块玻璃看一处,改一动二;<kbd>Ctrl</kbd>+<kbd>w</kbd> 前缀管所有窗口事(w 选窗、o 清屏、= 均分);</li>
+          <li><strong>找到靠 IDE,改靠 vim</strong>:文件 / 符号 / 定义跳转交接给 IDE,落位后的加工全用 vim 键 —— 分工不是妥协,是流水线。</li>
+        </ol>
+        <p>至此「进阶篇」全部收官。下一章把整套武功装回 IDE:VSCodeVim 与 IdeaVim 的推荐配置全文、特色命令(gd、surround、多光标)、键位冲突的仲裁原则。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:缓冲区点名(10 分钟)</summary>
+          <div class="answer">
+            <p>在 IDE 里打开一个多文件项目,任选 5 个文件依次 <code>:e</code> 打开;然后:①<code>:ls</code> 认一遍号与状态字母(找到 %、#、a);②只用 <code>:b{n}</code> 按指定顺序访问 5 个文件(如 3→1→5→2→4),每个文件里 <kbd>G</kbd> 再 <kbd>g</kbd><kbd>g</kbd>,体会「光标原地记忆」;③挑两个文件用 <kbd>Ctrl</kbd>+<kbd>^</kbd> 乒乓 10 个来回;④<code>:b ut</kbd>+<kbd>Tab</kbd> 体验名字补全。通过线:切文件全程不碰鼠标、不看标签栏。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:分屏施工(10 分钟)</summary>
+          <div class="answer">
+            <p>①<code>:sp</code> 上下分屏,<kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>j</kbd> 到下窗,<kbd>G</kbd> 看文件尾;②在下窗改一行,<kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>w</kbd> 回上窗验证同步出现;③<code>:vs</code> 再分一扇,数清焦点在哪;<kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>h</kbd>/<kbd>l</kbd> 左右走;④<kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>_</kbd> 纵向最大化,再 <kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>=</kbd> 均分;⑤<kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>o</kbd> 一键清屏;⑥<code>:q</code> 关窗与 <code>:qa</code> 全关各试一次。通过线:每次焦点移动都能提前说出会落在哪扇窗。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:quickfix 消化(10 分钟)</summary>
+          <div class="answer">
+            <p>在项目根目录:①<code>:vimgrep /TODO/ **/*</code> 把待办收进清单;②<code>:copen</code> 打开清单窗,看一眼分布;③<code>:cclose</code> 收起,只靠 <code>:cn</code> 逐条跳,每条做一个小加工(行尾加 <code> [ok]</code> 之类),连做 5 条;④<code>:cp</code> 回跳一次验证方向;<code>:cfirst</code>、<code>:clast</code> 各跳一次。通过线:全程不碰鼠标也不看清单窗,仅凭 :cn 的落点就知道自己到了哪。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>10 题先说答案再看:①列出所有缓冲区 ②切到 3 号缓冲区 ③打开 config.yml ④当前与上一个文件间往返 ⑤水平 / 垂直分屏 ⑥焦点移到下窗口 ⑦只保留当前窗口 ⑧下一个标签页 / 直达第 2 个 ⑨把所有 TODO 收进清单并跳到第一条 ⑩保存全部并退出。答案::ls / :b3 / :e config.yml(Tab 补全)/ Ctrl-^ / :sp 与 :vs / Ctrl-w j / Ctrl-w o / gt 与 2gt / :vimgrep /TODO/ **/* 然后 :cn / :wqa。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 带 + 号的缓冲区被 :qa 拦下 / 被 :qa! 蒸发</span>
+          <code>:ls</code> 清单里的 <code>+</code> 号 = 未保存修改。<code>:qa</code> 遇到它会被 Vim 拦下提示 —— 这是护栏,别嫌烦;而 <code>:qa!</code> 是显式声明「全丢弃」,半天工作真会蒸发。纪律:<strong>改完随手 :w,收尾用 :wa / :wqa</strong>;在 IDE 里把自动保存开成习惯,这问题从根上消失。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 分屏多了,焦点迷路</span>
+          屏幕挂了四五扇窗,打字突然「不进编辑区」—— 九成是焦点不在你以为的那扇窗。两招根治:①迷路就 <kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>w</kbd> 按到回来(两扇窗时就是乒乓);②用完立刻 <kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>o</kbd> 清到一扇。预防:分屏不超过三扇,临时脚手架用完就拆。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 把标签页当文件列表,开二十个</span>
+          Vim 的 tab 是「布局桌面」不是「文件抽屉」:堆二十个标签,gt 按到手指抽筋,还占掉一整条屏幕。多文件切换的正确工具是缓冲区(:ls / :b / Ctrl-^,数量不敏感);标签页只留给「几套布局来回切」。IDE 用户特别容易犯这条 —— 浏览器/VSCode 的习惯翻译不过来,记住:<strong>内容在缓冲区,tab 只是摆法</strong>。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 Ctrl-^ 的「上一个」被顶掉了</span>
+          交替缓冲区(#)是<strong>动态的</strong>:A → B → C 之后,Ctrl-^ 在 C、B 之间乒乓,回不到 A —— 有人以为坏了,其实是对象换了。两个以上文件的往返别赌 Ctrl-^,<code>:ls</code> 看号或 <code>:b 名字</code> 补全,确定性第一;真需要「最近访问的历史」,IDE 的 <kbd>Cmd</kbd>+<kbd>e</kbd>(IDEA)/ <kbd>Ctrl</kbd>+<kbd>Tab</kbd>(VSCode)是更长的列表。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li><code>:ls</code> / <code>:b</code> / <code>:e</code> 可用,与 VSCode 已打开的编辑器联动;未保存切换不受限(跟随 VSCode 的脏文件体系),<code>+</code> 号对应标签栏的圆点</li>
+              <li><code>:sp</code> / <code>:vs</code> 与 <kbd>Ctrl</kbd>+<kbd>w</kbd> 系列:分屏由 VSCode 编辑器组实现;也可用原生 <kbd>Cmd</kbd>+<kbd>\</kbd> 分屏、<kbd>Cmd</kbd>+<kbd>1</kbd>/<kbd>2</kbd> 选组</li>
+              <li>标签页:VSCodeVim 的 gt/gT 映射到 VSCode 标签栏(<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>←</kbd>/<kbd>→</kbd> 同义);<code>:tabe</code> 开新标签</li>
+              <li>quickfix 对照:<code>:vimgrep</code> 可用,但全局搜索优先 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>f</kbd>,问题导航用 <kbd>F8</kbd>/<kbd>Shift</kbd>+<kbd>F8</kbd>;定位三件 <kbd>Cmd</kbd>+<kbd>p</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>o</kbd> / <kbd>g</kbd><kbd>d</kbd>(= <kbd>Cmd</kbd>+<kbd>b</kbd> 定义,第 12 章展开)</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>IdeaVim 的 <code>:ls</code> / <code>:b</code> 与 IDEA 打开的编辑器联动;<code>:e</code> 相对项目根解析路径;未保存切换默认放行(hidden 语义)</li>
+              <li><code>:sp</code> / <code>:vs</code> 与 <kbd>Ctrl</kbd>+<kbd>w</kbd> 接 IDEA 的分屏(Split Right / Down);关窗 <kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>c</kbd> 与原生 <kbd>Cmd</kbd>+<kbd>W</kbd> 并存,留意误关</li>
+              <li>标签页即 IDEA 编辑器标签:gt/gT 循环、{n}gt 直达;「最近文件」<kbd>Cmd</kbd>+<kbd>e</kbd> 是 IDEA 招牌,比 Ctrl-^ 覆盖更长的历史</li>
+              <li>quickfix 对照:<code>:vimgrep</code> / <code>:cn</code> 可用;日常优先 Find in Files(<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>f</kbd>)与 Problems 面板;定义跳转 <kbd>Cmd</kbd>+<kbd>b</kbd>(vim 键 <kbd>g</kbd><kbd>d</kbd> 等价)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>按键 / 命令</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>:ls</code></td><td>缓冲区清单(% 当前 # 上一个 + 未存)</td><td><code>:b{n}</code> / <code>:b 名字</code></td><td>按号 / 按名切缓冲区</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>^</kbd></td><td>当前 ↔ 上一个 一键乒乓</td><td><code>:e 文件</code></td><td>打开文件(Tab 补全)</td></tr>
+            <tr><td><code>:sp</code> / <code>:vs</code></td><td>上下 / 左右分屏</td><td><kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>w</kbd>/<kbd>hjkl</kbd></td><td>轮换 / 方向选窗</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>o</kbd> / <kbd>c</kbd></td><td>只留此窗 / 关一扇</td><td><kbd>Ctrl</kbd>+<kbd>w</kbd> <kbd>_</kbd> / <kbd>=</kbd></td><td>纵向最大 / 全部均分</td></tr>
+            <tr><td><kbd>g</kbd><kbd>t</kbd> / <kbd>g</kbd><kbd>T</kbd> / <code>{n}gt</code></td><td>标签页切换 / 直达</td><td><code>:tabe</code> / <code>:tabc</code></td><td>新开 / 关闭标签页</td></tr>
+            <tr><td><code>:vimgrep /词/ **/*</code> + <code>:cn</code></td><td>收清单逐条跳</td><td><code>:wa</code> / <code>:wqa</code> / <code>:qa!</code></td><td>全存 / 存并退 / 弃改退</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:内容在缓冲区(:ls :b Ctrl-^),窗口标签只是取景(sp/vs + Ctrl-w),找到靠 IDE,改靠 vim,收尾 :wa。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch10.html">← 第 10 章 · 撤销、重复与宏</a>
+          <a href="ch12.html">第 12 章 · IDE 集成:配置与特色命令 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch11.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

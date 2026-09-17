@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>附录 A · 快速参考手册 — Vim 修炼场</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* 附录A 专用样式(assets/ 自 P2 起只读,故内联;只加不改全局基调) */
+    .cs-actions { display: flex; gap: 10px; align-items: center; margin: 4px 0 8px; flex-wrap: wrap; }
+    .cs-print-btn {
+      padding: 9px 18px; border-radius: 10px; cursor: pointer;
+      font-size: 14.5px; font-weight: 600;
+      background: rgb(var(--bg-card)); color: rgb(var(--fg));
+      border: 1.5px solid rgb(var(--border-strong));
+    }
+    .cs-print-btn:hover { border-color: rgb(var(--accent)); color: rgb(var(--accent)); }
+    .cs-lead { color: rgb(var(--fg-muted)); font-size: 15px; }
+    .cs-formula {
+      background: rgb(var(--bg-card)); border: 1px solid rgb(var(--border-subtle));
+      border-left: 4px solid rgb(var(--accent)); border-radius: 10px;
+      padding: 12px 16px; margin: 12px 0; font-size: 16px;
+    }
+    .cs-formula .f { font-weight: 800; font-size: 17px; }
+    .cs-formula .d { color: rgb(var(--fg-muted)); font-size: 14.5px; margin-top: 4px; }
+    section.cs-syntax .ktable td:nth-child(2) { white-space: nowrap; }
+
+    /* ===== 打印样式(黑白可读,A4 友好) ===== */
+    @media print {
+      @page { size: A4; margin: 13mm 12mm; }
+      html, body { background: #fff !important; color: #000 !important; font-size: 12px; }
+      .cs-actions, .cs-print-btn { display: none !important; }
+      /* 全局 print 已隐藏 .topbar/.toc/.read-toggle/.pager,这里再兜一层 */
+      .topbar, .toc, .read-toggle, .pager { display: none !important; }
+      main.wrap { max-width: 100%; padding: 0; margin: 0; }
+      article.chapter h1 { font-size: 20px; margin: 0 0 2px; }
+      .ch-kicker, .ch-meta-line { font-size: 11px; }
+      article.chapter h2 { font-size: 15px; margin: 14px 0 6px; padding: 2px 0 2px 8px; border-left: 3px solid #000; }
+      article.chapter h2::before { transform: none; }
+      table.ktable { font-size: 11px; margin: 6px 0 10px; }
+      table.ktable th, table.ktable td { border: 0.6pt solid #777 !important; padding: 3pt 6pt; background: #fff !important; }
+      table.ktable th { background: #eee !important; }
+      kbd {
+        border: 0.7pt solid #000 !important; border-bottom-width: 1.2pt !important;
+        background: #fff !important; color: #000 !important;
+        padding: 0 3pt; font-size: 10px; box-shadow: none;
+      }
+      code { background: #fff !important; color: #000 !important; border-color: #999 !important; }
+      .cs-formula { border: 0.8pt solid #555; border-left: 3pt solid #000; background: #fff !important; }
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      .cs-formula { break-inside: avoid; page-break-inside: avoid; }
+      h2 { break-after: avoid; page-break-after: avoid; }
+      a { color: #000 !important; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="apxa" data-ch="apxa">
+      <header class="ch-header">
+        <div class="ch-kicker">APPENDIX A · 快速参考手册</div>
+        <h1>速查表:全部按键,一页在手</h1>
+        <div class="ch-meta-line">14 组分组速查 + 编辑语言语法卡 · 覆盖第 1–13 章全部内容 · 按住 ⌘/Ctrl-P 打印随身携带</div>
+      </header>
+
+      <div class="cs-actions">
+        <button class="cs-print-btn" type="button" onclick="window.print()">🖨 打印本页(A4 友好)</button>
+        <span class="cs-lead">每一行都注明出处章节 —— 忘了「为什么」,点回那一章再看一遍;忘了「怎么按」,看这张表就够了。</span>
+      </div>
+
+      <section class="lesson">
+        <h2>1. 生存五分钟(第 1 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>i</kbd> / <kbd>a</kbd></td><td>光标前 / 后进入插入模式</td><td><a href="chapters/ch01.html">第 1 章</a></td></tr>
+            <tr><td><kbd class="escape">Esc</kbd></td><td>回普通模式(万能退票键)</td><td><a href="chapters/ch01.html">第 1 章</a></td></tr>
+            <tr><td><kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></td><td>左 / 下 / 上 / 右(主键区方向键)</td><td><a href="chapters/ch01.html">第 1 章</a></td></tr>
+            <tr><td><kbd>x</kbd></td><td>删光标处一个字符</td><td><a href="chapters/ch01.html">第 1 章</a></td></tr>
+            <tr><td><kbd>d</kbd><kbd>d</kbd></td><td>删整行</td><td><a href="chapters/ch01.html">第 1 章</a></td></tr>
+            <tr><td><kbd>o</kbd></td><td>下方新建一行并进入插入</td><td><a href="chapters/ch01.html">第 1 章</a></td></tr>
+            <tr><td><kbd>u</kbd></td><td>撤销</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><code>:w</code> / <code>:q</code> / <code>:wq</code></td><td>保存 / 退出 / 存并退</td><td><a href="chapters/ch01.html">第 1 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>2. 移动 · 字符与词(第 2 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>w</kbd> / <kbd>b</kbd> / <kbd>e</kbd></td><td>下一词头 / 上一词头 / 词尾</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>g</kbd><kbd>e</kbd></td><td>上一词尾</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>W</kbd> / <kbd>B</kbd> / <kbd>E</kbd></td><td>大词版(只认空白分界,标点不算)</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>0</kbd> / <kbd>^</kbd> / <kbd>$</kbd></td><td>行首 / 首个非空白 / 行尾</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>g</kbd><kbd>_</kbd></td><td>最后一个非空白字符</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>f</kbd>{字符} / <kbd>F</kbd>{字符}</td><td>行内右 / 左搜,直达该字符</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>t</kbd>{字符} / <kbd>T</kbd>{字符}</td><td>同上,但停在目标前一格(t = till)</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>;</kbd> / <kbd>,</kbd></td><td>重复 / 反向重复上一次 f/t 搜索</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>g</kbd><kbd>j</kbd> / <kbd>g</kbd><kbd>k</kbd></td><td>按屏幕行下 / 上(折行时不串位)</td><td><a href="chapters/ch02.html">第 2 章</a></td></tr>
+            <tr><td><kbd>3</kbd><kbd>w</kbd> 形态</td><td>计数前缀:任何移动键前可加数字</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>3. 移动 · 行与文件(第 3 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></td><td>文件头 / 文件尾</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>1</kbd><kbd>2</kbd><kbd>G</kbd> / <code>:12</code></td><td>跳到第 12 行(两种写法)</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>5</kbd><kbd>j</kbd> / <kbd>3</kbd><kbd>k</kbd></td><td>配合相对行号,下 / 上跳 5 / 3 行</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>{</kbd> / <kbd>}</kbd></td><td>上一 / 下一空行(段落边界)</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>(</kbd> / <kbd>)</kbd></td><td>上一 / 下一句开头</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>%</kbd></td><td>跳到配对的括号;配动词用 <kbd>d</kbd><kbd>%</kbd> 删整块</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>H</kbd> / <kbd>M</kbd> / <kbd>L</kbd></td><td>屏幕顶 / 中 / 底</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>d</kbd> / <kbd>Ctrl</kbd>+<kbd>u</kbd></td><td>下 / 上翻半页</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>f</kbd> / <kbd>Ctrl</kbd>+<kbd>b</kbd></td><td>下 / 上翻整页</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>z</kbd><kbd>z</kbd> / <kbd>z</kbd><kbd>t</kbd> / <kbd>z</kbd><kbd>b</kbd></td><td>光标行居中 / 置顶 / 置底</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>m</kbd><kbd>a</kbd> → <kbd>'</kbd><kbd>a</kbd> / <kbd>`</kbd><kbd>a</kbd></td><td>设书签 a → 跳回 a 的行首 / 精确位置</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>o</kbd> / <kbd>Ctrl</kbd>+<kbd>i</kbd></td><td>跳转链后退 / 前进</td><td><a href="chapters/ch03.html">第 3 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>4. 文本对象(第 4 章 · 全站核心)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>i</kbd><kbd>w</kbd> / <kbd>a</kbd><kbd>w</kbd></td><td>词本身 / 词 + 尾部空格(a 多吃一口)</td><td><a href="chapters/ch04.html">第 4 章</a></td></tr>
+            <tr><td><kbd>i</kbd><kbd>(</kbd> / <kbd>a</kbd><kbd>(</kbd></td><td>括号内 / 含括号;光标在括号上任意位置即可</td><td><a href="chapters/ch04.html">第 4 章</a></td></tr>
+            <tr><td><kbd>i</kbd><kbd>{</kbd> / <kbd>a</kbd><kbd>{</kbd>(同 <kbd>[</kbd>)</td><td>花括号 / 方括号版</td><td><a href="chapters/ch04.html">第 4 章</a></td></tr>
+            <tr><td><kbd>i</kbd><kbd>"</kbd> / <kbd>a</kbd><kbd>"</kbd>(同 <kbd>'</kbd>)</td><td>引号内 / 含引号;光标在同行引号串内即可</td><td><a href="chapters/ch04.html">第 4 章</a></td></tr>
+            <tr><td><kbd>i</kbd><kbd>t</kbd> / <kbd>a</kbd><kbd>t</kbd></td><td>HTML 标签内 / 含标签(嵌套取最内层)</td><td><a href="chapters/ch04.html">第 4 章</a></td></tr>
+            <tr><td><kbd>i</kbd><kbd>p</kbd> / <kbd>a</kbd><kbd>p</kbd></td><td>当前段落(不含 / 含前后空行)</td><td><a href="chapters/ch04.html">第 4 章</a></td></tr>
+            <tr><td>动词 + 上述对象</td><td><kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 改词 / <kbd>d</kbd><kbd>a</kbd><kbd>(</kbd> 拆参 / <kbd>y</kbd><kbd>i</kbd><kbd>"</kbd> 复制串 / <kbd>v</kbd><kbd>i</kbd><kbd>{</kbd> 圈选</td><td><a href="chapters/ch04.html">第 4 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>5. 编辑动词与语法(第 5 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>d</kbd>{名词}</td><td>删除(cw 之外最常用动词)<kbd>d</kbd><kbd>$</kbd> 删到行尾</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>c</kbd>{名词}</td><td>改写 = 删 + 进插入;<kbd>c</kbd><kbd>w</kbd> 不吃词尾空格</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>y</kbd>{名词}</td><td>复制(yank);<kbd>y</kbd><kbd>y</kbd> 整行</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>C</kbd>(= <kbd>c</kbd><kbd>$</kbd>)/ <kbd>cc</kbd></td><td>删到行尾并改写 / 改整行</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>p</kbd> / <kbd>P</kbd></td><td>粘贴到后 / 前(行寄存器粘到下 / 上一行)</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>x</kbd><kbd>p</kbd></td><td>交换两个字符(删 + 粘到后面)</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>r</kbd>{字符}</td><td>单字符替换,不进插入模式</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>s</kbd> / <kbd>S</kbd></td><td>删字符 / 整行后改写(小删大改)</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>J</kbd> / <kbd>g</kbd><kbd>J</kbd></td><td>下一行并入本行(带 / 不带智能空格)</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>~</kbd> / <kbd>g</kbd><kbd>U</kbd>{对象} / <kbd>g</kbd><kbd>u</kbd>{对象}</td><td>反转 / 转大写 / 转小写</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+            <tr><td><kbd>&gt;</kbd><kbd>&gt;</kbd> / <kbd>&lt;</kbd><kbd>&lt;</kbd> / <kbd>=</kbd><kbd>=</kbd></td><td>缩进 / 反缩进 / 走 IDE 格式化</td><td><a href="chapters/ch05.html">第 5 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>6. 插入与替换模式(第 6 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>I</kbd> / <kbd>A</kbd></td><td>行首首个非空白 / 行尾进入插入(体贴版 i/a)</td><td><a href="chapters/ch06.html">第 6 章</a></td></tr>
+            <tr><td><kbd>o</kbd> / <kbd>O</kbd></td><td>下方 / 上方新建一行并插入</td><td><a href="chapters/ch06.html">第 6 章</a></td></tr>
+            <tr><td><kbd>g</kbd><kbd>i</kbd></td><td>回到上次离开插入模式的位置继续插</td><td><a href="chapters/ch06.html">第 6 章</a></td></tr>
+            <tr><td>插入内 <kbd>Ctrl</kbd>+<kbd>w</kbd> / <kbd>Ctrl</kbd>+<kbd>u</kbd></td><td>删前一个词 / 删到行首(小剪刀)</td><td><a href="chapters/ch06.html">第 6 章</a></td></tr>
+            <tr><td>插入内 <kbd>Ctrl</kbd>+<kbd>t</kbd> / <kbd>Ctrl</kbd>+<kbd>d</kbd></td><td>本行加 / 减一层缩进</td><td><a href="chapters/ch06.html">第 6 章</a></td></tr>
+            <tr><td>插入内 <kbd>Ctrl</kbd>+<kbd>o</kbd>{命令}</td><td>临时执行一个普通模式命令后自动回插入</td><td><a href="chapters/ch06.html">第 6 章</a></td></tr>
+            <tr><td><kbd>R</kbd></td><td>替换模式:逐字符覆写(等长改写用,别忘 Esc)</td><td><a href="chapters/ch06.html">第 6 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>7. 可视化模式与块编辑(第 7 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>v</kbd> / <kbd>V</kbd> / <kbd>Ctrl</kbd>+<kbd>v</kbd></td><td>字符选 / 行选 / 块选(矩形)</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+            <tr><td><kbd>o</kbd> / <kbd>O</kbd></td><td>把光标甩到选区另一端(修剪用)</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+            <tr><td><kbd>gv</kbd></td><td>召回上一次选区(圈一次动多次)</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+            <tr><td>选区 + <kbd>d</kbd> / <kbd>c</kbd> / <kbd>y</kbd> / <kbd>~</kbd> / <kbd>&gt;</kbd></td><td>对所见即所得的范围施工</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+            <tr><td>块选 + <kbd>I</kbd>{文本}<kbd class="escape">Esc</kbd></td><td>块插入:选中行每行同一位置插入(批量 // 注释)</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+            <tr><td>块选 + <kbd>A</kbd>{文本}<kbd class="escape">Esc</kbd></td><td>块追加:每行行尾追加(批量加分号)</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+            <tr><td>块选 + <kbd>$</kbd></td><td>块右界拉到各行行尾(不等长行也覆盖)</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+            <tr><td>块选 + <kbd>d</kbd> / <kbd>r</kbd>{字符}</td><td>删一矩形列 / 整列覆写同一字符</td><td><a href="chapters/ch07.html">第 7 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>8. 查找与替换(第 8 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><code>/词</code> 回车 / <code>?词</code></td><td>向下 / 向上查找(边打边跳)</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>下一个 / 上一个匹配</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td><kbd>*</kbd> / <kbd>#</kbd> / <kbd>g</kbd><kbd>*</kbd></td><td>整词向下 / 向上 / 非整词查找光标词</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td><code>:s/旧/新/</code></td><td>当前行第一处替换;加 <code>g</code> 改全部,加 <code>c</code> 逐个确认,加 <code>i</code> 忽略大小写</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td><code>:%s/旧/新/g</code></td><td>全文件替换(五段式:域 / 旧 / 新 / 旗帜)</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td>选区后输入 <code>:s/…</code></td><td>自动带 <code>'&lt;,'&gt;</code> 前缀 = 只替换选区内</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td><code>&amp;</code> / <kbd>j</kbd><kbd>&amp;</kbd>…</td><td>重复上次替换(逐行下移重播)</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td><code>:g/模式/d</code> / <code>:v/模式/d</code></td><td>删所有匹配行 / 不匹配行(global 命令)</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+            <tr><td><code>\(…\)</code> 与 <code>\1</code></td><td>捕获组与回引(键名加引号等规范化)</td><td><a href="chapters/ch08.html">第 8 章</a> · <a href="chapters/ch13.html">第 13 章</a></td></tr>
+            <tr><td><code>:noh</code></td><td>关掉本次高亮(下次查找自动回来)</td><td><a href="chapters/ch08.html">第 8 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>9. 寄存器与剪贴板(第 9 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><code>""</code>(无名,默认)</td><td>y 与 d 共用 → 复制被删除顶掉</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+            <tr><td><code>"0</code></td><td>最近复制专属,删不动它 → <code>"0p</code> 救场</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+            <tr><td><code>"1</code>–<code>"9</code></td><td>删除历史传送带(整行删除才入队)</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+            <tr><td><code>"a</code>–<code>"z</code> / <code>"A</code></td><td>命名抽屉一屉一用 / 大写 = 追加(收集散行)</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+            <tr><td><code>"_</code></td><td>黑洞:删除不进任何寄存器(怕顶掉)</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+            <tr><td><code>"+</code> / <code>"*</code></td><td>系统剪贴板(<code>"+p</code> 贴外部内容)</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+            <tr><td><code>:reg</code></td><td>查看所有抽屉里存了什么</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+            <tr><td>插入内 <kbd>Ctrl</kbd>+<kbd>r</kbd> + 寄存器名</td><td>插入过程中粘贴某寄存器(<kbd>Ctrl</kbd>+<kbd>r</kbd> + <kbd>0</kbd>)</td><td><a href="chapters/ch09.html">第 9 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>10. 撤销、重复与宏(第 10 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>u</kbd> / <kbd>Ctrl</kbd>+<kbd>r</kbd></td><td>撤销 / 重做(按「会话单元」)</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><kbd>.</kbd></td><td>重复最后一次修改(单格记忆,dd 会覆盖它)</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><kbd>q</kbd><kbd>a</kbd> … <kbd>q</kbd></td><td>录宏到寄存器 a:开始 → 施工 → 结束</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><kbd>@</kbd><kbd>a</kbd> / <kbd>@</kbd><kbd>@</kbd></td><td>回放宏 a / 回放上次回放的宏</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><kbd>2</kbd><kbd>2</kbd><kbd>@</kbd><kbd>q</kbd></td><td>连发 22 次(录制时结尾记得自动推进,如 j)</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>a</kbd> / <kbd>Ctrl</kbd>+<kbd>x</kbd></td><td>光标处数字 +1 / −1(配合宏造编号序列)</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><code>:%normal A;</code></td><td>每行执行普通模式命令(批量行尾加分号)</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+            <tr><td><kbd>q</kbd><kbd>A</kbd>(录制中)</td><td>追加进已有宏 a(修宏不用重录)</td><td><a href="chapters/ch10.html">第 10 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 多文件与窗口(第 11 章)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><code>:ls</code> / <code>:b3</code> / <code>:e 文件</code></td><td>缓冲区清单 / 切 3 号 / 打开文件(Tab 补全)</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>^</kbd></td><td>当前与上一个文件一键乒乓</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><code>:sp</code> / <code>:vs</code></td><td>上下 / 左右分屏(两块玻璃看同一个缓冲区)</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>w</kbd> + <kbd>h</kbd>/<kbd>j</kbd>/<kbd>k</kbd>/<kbd>l</kbd>/<kbd>w</kbd></td><td>按方向选窗 / 轮换焦点</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>w</kbd> + <kbd>o</kbd> / <kbd>c</kbd> / <kbd>_</kbd> / <kbd>=</kbd></td><td>只留此窗 / 关一扇 / 纵向最大化 / 全部均分</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><kbd>g</kbd><kbd>t</kbd> / <kbd>g</kbd><kbd>T</kbd> / <kbd>2</kbd><kbd>g</kbd><kbd>t</kbd></td><td>下一 / 上一 / 第 2 个标签页(tab = 布局桌面)</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><code>:tabe 文件</code> / <code>:tabc</code></td><td>新开 / 关闭标签页</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><code>:vimgrep /TODO/ *.js</code> + <code>:cn</code> / <code>:cp</code></td><td>收 quickfix 清单,逐条跳着消化</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+            <tr><td><code>:wa</code> / <code>:wqa</code> / <code>:qa!</code></td><td>全存 / 存并全退 / 弃改全退</td><td><a href="chapters/ch11.html">第 11 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>12. IDE 集成特色键(第 12 章 · 已核对官方文档)</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 配置</th><th>作用</th><th>详见</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>g</kbd><kbd>d</kbd></td><td>跳到定义(vim 键扣 IDE 索引的扳机)</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+            <tr><td><kbd>g</kbd><kbd>h</kbd> / <kbd>K</kbd></td><td>悬停提示 / 查文档(IDEA:gh 绑 <code>&lt;Action&gt;(ShowErrorDescription)</code>)</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+            <tr><td><kbd>g</kbd><kbd>b</kbd></td><td>下一个相同词加光标(= Cmd-d;IDEA 原生 Alt+J)</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+            <tr><td><kbd>y</kbd><kbd>s</kbd>iw{壳} / <kbd>c</kbd><kbd>s</kbd>{旧}{新} / <kbd>d</kbd><kbd>s</kbd>{壳}</td><td>surround:加壳 / 换壳 / 拆壳(如 <code>ysiw"</code>、<code>cs"'</code>、<code>ds'</code>)</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+            <tr><td><code>&lt;leader&gt;</code>(推荐空格)+ 自定义键</td><td>自定义命令发射台(<code>&lt;leader&gt;d</code> = dd、<code>&lt;leader&gt;w</code> = 保存)</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+            <tr><td><code>&lt;leader&gt;f</code> + 首字母 + 标签</td><td>easymotion 屏内两键瞬移</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+            <tr><td><code>sethandler &lt;C-a&gt; a:ide</code>(IDEA)</td><td>冲突键仲裁:Ctrl-a 判给 IDE(全选)</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+            <tr><td><code>"vim.handleKeys": {"&lt;C-f&gt;": false}</code>(VSCode)</td><td>冲突键仲裁:Ctrl-f 还给原生查找</td><td><a href="chapters/ch12.html">第 12 章</a></td></tr>
+          </tbody>
+        </table>
+
+        <h2>13. 编辑语言语法卡(全站的骨架)</h2>
+        <div class="cs-formula">
+          <div class="f">[计数] 动词 [计数] 名词</div>
+          <div class="d">一条完整的编辑语句:<kbd>2</kbd><kbd>d</kbd><kbd>w</kbd>(删两个词)、<kbd>d</kbd><kbd>2</kbd><kbd>w</kbd>(一次删两词)等效;名词 = 移动键(w、$、f{字符})或文本对象(iw、a()。<a href="chapters/ch05.html">第 5 章</a></div>
+        </div>
+        <div class="cs-formula">
+          <div class="f">动词 + i/a + 对象 = 说话</div>
+          <div class="d">i = inside(只要里面),a = around(连壳一起,「多吃一口」):<kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 改引号里的内容、<kbd>d</kbd><kbd>a</kbd><kbd>(</kbd> 连括号一起拆。<a href="chapters/ch04.html">第 4 章</a></div>
+        </div>
+        <div class="cs-formula">
+          <div class="f">"寄存器 + 动词 / "寄存器 + p</div>
+          <div class="d">存与取都显式指名:<kbd>"</kbd><kbd>a</kbd><kbd>y</kbd><kbd>y</kbd> 复制进抽屉 a,<kbd>"</kbd><kbd>a</kbd><kbd>p</kbd> 取出;不指名则走默认通道。<a href="chapters/ch09.html">第 9 章</a></div>
+        </div>
+        <div class="cs-formula">
+          <div class="f">q{寄存器} 施工(结尾自动推进)q → {次数}@{寄存器}</div>
+          <div class="d">宏的完整生命周期;三纪律:相对导航、结尾推进、连发前先试一发。<a href="chapters/ch10.html">第 10 章</a></div>
+        </div>
+        <div class="cs-formula">
+          <div class="f">:域s/旧/新/旗帜</div>
+          <div class="d">替换五段式:域(省略 = 当前行,% = 全文件,'&lt;,'&gt; = 选区)+ 分隔符随意 + 旗帜 g(全行)c(确认)i(忽略大小写)。<a href="chapters/ch08.html">第 8 章</a></div>
+        </div>
+
+        <h2>14. 五种模式速览</h2>
+        <table class="ktable">
+          <thead><tr><th>模式</th><th>进入</th><th>退出 / 说明</th></tr></thead>
+          <tbody>
+            <tr><td>普通 normal</td><td><kbd class="escape">Esc</kbd>(一切的出发点)</td><td>所有键都是命令;这里才有「编辑语言」</td></tr>
+            <tr><td>插入 insert</td><td><kbd>i</kbd> <kbd>a</kbd> <kbd>I</kbd> <kbd>A</kbd> <kbd>o</kbd> <kbd>O</kbd></td><td><kbd class="escape">Esc</kbd> 回普通;停得越短越好(第 6 章)</td></tr>
+            <tr><td>可视 visual(字符/行/块)</td><td><kbd>v</kbd> / <kbd>V</kbd> / <kbd>Ctrl</kbd>+<kbd>v</kbd></td><td><kbd class="escape">Esc</kbd> 退出;选完接动词(第 7 章)</td></tr>
+            <tr><td>替换 replace</td><td><kbd>R</kbd></td><td><kbd class="escape">Esc</kbd> 退出;逐字符覆写(第 6 章)</td></tr>
+            <tr><td>命令行 cmdline</td><td><kbd>:</kbd> / <code>/</code></td><td>回车执行,<kbd class="escape">Esc</kbd> 取消;:s :g :b :reg 都住这</td></tr>
+          </tbody>
+        </table>
+        <p class="cs-lead">打印小贴士:浏览器打印时勾选「背景图形」可保留表头底色;不勾则是纯黑白,同样可读。查「为什么」回章节,查「怎么按」看本页 —— <a href="faq.html">附录 B(FAQ)</a>收着装备与心态类问题。</p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="chapters/ch13.html">← 第 13 章 · 实战案例集</a>
+          <a href="faq.html">附录 B · 常见陷阱与 FAQ →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="assets/js/nav.js"></script>
+  <script src="assets/js/progress.js"></script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 10 章 · 撤销、重复与宏 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch10" data-ch="ch10">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 10 · 进阶篇 终</div>
+        <h1>撤销、重复与宏:重复劳动的终结者</h1>
+        <div class="ch-meta-line">预计阅读 35 分钟(含练习约 1.5 小时)· 前置:第 5、8、9 章 · 本章演示 7 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>搞懂<strong>撤销单元</strong>:一次插入会话、一次普通模式修改、一条 <code>:</code> 命令各算一步 —— <kbd>u</kbd> 退的是「一段意图」不是一个字母,<kbd>Ctrl</kbd>+<kbd>r</kbd> 沿时间线前进</li>
+          <li>掌握 <kbd>.</kbd>(dot)的机制与边界:<strong>单格记忆,随时被新修改覆盖</strong>;练成「先完整做一次,再移动 + 重复」的黄金节奏</li>
+          <li>学会<strong>宏</strong>:<kbd>q</kbd><kbd>a</kbd> 录制、<kbd>@</kbd><kbd>a</kbd> 回放、<kbd>@</kbd><kbd>@</kbd> 再来、<code>22@a</code> 连发 —— 把一段按键存进寄存器批量重放</li>
+          <li>用好数字引擎 <kbd>Ctrl</kbd>+<kbd>a</kbd> / <kbd>Ctrl</kbd>+<kbd>x</kbd>,配合宏批量生成与修改编号</li>
+          <li>入门 <code>:normal</code>:把任意普通模式按键<strong>批量发给每一行</strong>,并与 <code>:g</code> 组合</li>
+          <li>建立宏的<strong>三条设计纪律</strong>:结尾自动推进、只用相对移动、连发前先试一发 —— 以及录砸了之后的修复套路</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 重复的三个等级:本章地图</h2>
+        <p>先承认一个事实:写代码时,你做的修改经常是<strong>同一个修改的几十次复制</strong>。给 20 行补分号、把一个变量名的 8 处出现全改掉、给 30 个常量统一加前缀 —— 鼠标用户的命运是每处都「选中、删、打字」地重做一遍;Vim 用户的答案是:<strong>认真做一次,剩下的交给重复工具</strong>。</p>
+        <p>Vim 对「重复」的回答分三个等级,按你要重复的东西选:<strong>单动作的重复用 <kbd>.</kbd></strong>(重放最近一次修改,零成本);<strong>多动作成套的重复用宏</strong>(把一串按键录进寄存器,随时整段重放);<strong>范围明确的批量用命令</strong>(<code>:normal</code> 把按键一次性发给每一行)。三个工具不是三选一,是同一根杠杆的三档:先用最低档,<kbd>.</kbd> 撬不动了再升宏,宏都嫌啰嗦了再上命令。</p>
+        <p>而压舱这一切的是<strong>撤销</strong>。批量操作之所以敢放开手脚,是因为 <kbd>u</kbd> 一步就能回滚一整条命令、一整段插入。所以本章把撤销放在最前面讲透 —— 它是后面三档工具共同的安全网,也是你敢「先斩后奏」的底气。学完本章,你对「改 100 处」这件事的心理感受会从「不可能」变成「做一次,然后重复」。</p>
+
+        <h2>2. u 与 Ctrl-r:会话即单元</h2>
+        <p>Vim 的撤销不是字符级的,是<strong>意图级</strong>的:你按下一个修改、打完所有想打的字、退出 —— 这一整段算<strong>一个撤销单元</strong>。先看最容易被低估的规则:插入模式里打多少字,都只是一个单元:</p>
+
+        <div class="demo-slot" data-demo="ch10-01-undo-redo"></div>
+
+        <p>演示里两处关键:①那段注释打了十几个字符,<kbd>u</kbd> <strong>一步整体消失</strong> —— 不是退一个字母,是退「那次想加注释的意图」;②<kbd>Ctrl</kbd>+<kbd>r</kbd>(redo)沿时间线反向走,退多了随时拿回来,u 与 Ctrl-r 之间可以反复横跳地审查改动。把常见动作折算成单元数,一张表看清:</p>
+        <table class="ktable">
+          <thead><tr><th>你做的事</th><th>撤销单元</th><th>一次 <kbd>u</kbd> 退掉什么</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>A</kbd> 打十个字 <kbd>Esc</kbd></td><td>1 个</td><td>十个字整体消失,回到按 A 之前</td></tr>
+            <tr><td><kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 补新词 <kbd>Esc</kbd></td><td>1 个</td><td>旧词回来、新词消失,一口气</td></tr>
+            <tr><td><kbd>x</kbd> <kbd>x</kbd> <kbd>x</kbd>(三次单发)</td><td>3 个</td><td>只退一个字符 —— 单发修改逐个计</td></tr>
+            <tr><td><code>:%s/a/b/g</code>(几百处替换)</td><td>1 个</td><td>整条命令的所有替换一次回滚</td></tr>
+            <tr><td><code>:g/TODO/d</code>(删了几十行)</td><td>1 个</td><td>删掉的行全部回来(第 8 章演过)</td></tr>
+            <tr><td>宏 <code>10@a</code>(回放十次)</td><td>逐次可退</td><td>连按 <kbd>u</kbd> 一次次往回退</td></tr>
+          </tbody>
+        </table>
+        <p>两个补充件:<kbd>U</kbd>(大写)是「行级撤销」—— 一键退掉<strong>本行</strong>最近的所有修改,行内改砸了比连按 u 更快,但它自己也是个修改(会占用 <kbd>.</kbd> 的记忆,小心);至于「撤销分支」(退了又改,旧时间线存成树,用 <code>g-</code> 走旧分支)属于冷知识,IDE 插件支持参差,知道有这回事即可,日常线性时间线完全够用。设计哲学值得咀嚼一句:把「一次意图」定为单元,意味着撤销的终点永远是<strong>上一个完整、正确的状态</strong> —— 你不会停在「打了半句的注释」上。这也是 Vim 鼓励小步提交意图的原因:每个单元小而完整,u 的分辨率才刚好够用。</p>
+
+        <h2>3. `.` 的机制:单格记忆</h2>
+        <p><kbd>.</kbd>(dot)重放<strong>最近一次修改</strong>。它大概是 Vim 里性价比最高的一个键 —— 但前提是认清它的两条脾气:它只记修改,不记移动;它的记忆只有一格,随时被下一个修改覆盖。</p>
+
+        <div class="demo-slot" data-demo="ch10-02-dot-boundary"></div>
+
+        <p>演示的后半段是特意安排的「事故」:<kbd>x</kbd> 之后 <kbd>.</kbd> 好好用;一次 <kbd>d</kbd><kbd>d</kbd> 之后,<kbd>.</kbd> 重复的变成了 dd —— z 行整行消失。<strong>`.` 是单格记忆,新修改随时覆盖旧记忆</strong>,这不是缺陷,是它的设计:你永远不需要猜它记的是哪一次 —— 就是最近这一次。哪些动作算「修改」,一张表划清:</p>
+        <table class="ktable">
+          <thead><tr><th>算修改(`.` 会记)</th><th>不算修改(不影响 `.`)</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>x</kbd> <kbd>d</kbd>… <kbd>c</kbd>… <kbd>y</kbd>… <kbd>p</kbd> <kbd>~</kbd> <kbd>J</kbd></td><td>所有移动:<kbd>h</kbd><kbd>j</kbd><kbd>w</kbd> <kbd>f</kbd> <kbd>/</kbd> <kbd>n</kbd> <kbd>%</kbd> …</td></tr>
+            <tr><td>整段插入会话:<kbd>A</kbd>+文字+<kbd>Esc</kbd>(入口也算!)</td><td><kbd>Esc</kbd> 本身、模式切换本身</td></tr>
+            <tr><td><kbd>&gt;&gt;</kbd> <kbd>&lt;&lt;</kbd> <kbd>==</kbd>(缩进也算修改)</td><td>滚动 <kbd>Ctrl</kbd>+<kbd>d</kbd>、窗口切换</td></tr>
+            <tr><td>一条 <code>:</code> 命令(:s、:g、:normal)</td><td><kbd>gv</kbd> <kbd>Ctrl</kbd>+<kbd>o</kbd> 等跳转类</td></tr>
+          </tbody>
+        </table>
+        <p>注意第二行那个括号:「入口也算」。<kbd>.</kbd> 重放的不只是你打的字,还有<strong>你进入插入的方式</strong> —— 用 <kbd>A</kbd> 进入,重放时也会到行尾;用 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 进入,重放时也会先吃掉光标下的词。这就解释了一个流传已久的 Vim 谚语:<strong>高手按 Esc 的频率高得反常</strong> —— 因为只有完整闭合的会话才能被 `.` 存档,常开着的插入模式等于把重复工具闲置了。选入口时多想半秒(该用 <kbd>A</kbd> 还是 <kbd>$</kbd><kbd>a</kbd>?该用 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 还是 <kbd>d</kbd><kbd>w</kbd> 再 <kbd>i</kbd>?),入口本身带着「相对定位」的语义,重放才不会跑偏。</p>
+
+        <h2>4. `.` 的黄金节奏:移动 + 重复</h2>
+        <p>认清机制之后,`.` 的正确用法自然浮现:<strong>把第一个目标完整、认真地做对,然后只剩「移动到下一个目标 + 按点」</strong>。看四行补分号的标准作业:</p>
+
+        <div class="demo-slot" data-demo="ch10-03-dot-add-semicolon"></div>
+
+        <p><kbd>A</kbd> <kbd>;</kbd> <kbd>Esc</kbd> 三键是「投资」,之后每组 <kbd>j</kbd> <kbd>.</kbd> 两键一行,改动越多摊销越便宜。这个「移动 + 重复」的节奏在本站已经出现过两次:<a href="ch08.html">第 8 章</a>的 <kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd> 改名流水线(n 负责「下一个目标」),<a href="ch07.html">第 7 章</a>的 <kbd>V</kbd><kbd>j</kbd><kbd>j</kbd> <kbd>&gt;</kbd> <kbd>.</kbd> 逐行加缩进 —— 三处其实是同一个模式:移动键负责导航,点负责开火,手指在两种角色间交替,像打鼓。</p>
+        <p>`.` 的适用边界也在这时显形:它只会重放<strong>一个动作</strong>(尽管这个动作可以是一整段插入会话)。当每处的修改需要两个以上动作 —— 又改行首又补行尾、又删一行又给下一行加编号 —— `.` 就记不住了,按了点也只是重复最后一小步。这不是 `.` 的失败,是它的分工到此为止:<strong>单动作重复交给点,成套动作交给宏</strong>。下一节,升级。</p>
+
+        <h2>5. 宏:把按键序列存进抽屉</h2>
+        <p>宏(macros)一句话讲完:<strong>把一串按键录下来,存在一个寄存器里,之后一键整段重放</strong>。<a href="ch09.html">第 9 章</a>埋的伏笔在这里兑现 —— 命名寄存器 <code>"a</code>–<code>"z</code> 里存的除了文本,还可以是按键序列;所谓「宏」,就是当按键序列用的寄存器。录制语法三件套:</p>
+        <p><strong><kbd>q</kbd><kbd>a</kbd></strong> 开始录制(存进 a)<strong>→ 干活(照常按)→ <kbd>q</kbd></strong> 结束;回放用 <strong><kbd>@</kbd><kbd>a</kbd></strong>(把 a 里的序列再敲一遍),<strong><kbd>@</kbd><kbd>@</kbd></strong> 重复最近一次回放的宏。看把 §4 做不到的「一行两个动作」交给宏:</p>
+
+        <div class="demo-slot" data-demo="ch10-04-macro-record"></div>
+
+        <p>几个要点从演示里直接读出来:①<strong>录制期间一切照常生效</strong> —— 你一边录一边看到第一行被真实加工,所见即所录;②宏的结尾是一个 <kbd>j</kbd>,于是每次回放结束,光标<strong>自动停在下一个工作位</strong>上 —— 这是宏设计的第一条纪律:<strong>让宏自己往前走</strong>,回放才能连发;③回放后光标落在第三行,正好是下一个待办 —— 宏是「带位置语义的程序」,不是简单的录像回放。还有个冷知识:宏执行完毕后,<kbd>.</kbd> 记住的是宏里做的<strong>最后一个</strong>修改 —— 偶尔能拿来偷懒,但别依赖,宏的重复请直接用 <kbd>@</kbd><kbd>a</kbd>。</p>
+        <p>为什么宏要用 <code>"a</code>–<code>"z</code> 而不是别的寄存器?因为命名抽屉「只有你显式写它才变」—— 录进去的宏不会被后续的 y/d 意外顶掉(无名寄存器一天被顶几十次)。习惯上给宏固定抽屉:比如 <code>a</code> 永远放「当前任务宏」,录废了直接覆盖重录,不用换名字。宏的按键序列本质是文本,所以 <code>:reg a</code> 打开清单能看到它存了什么 —— 调试宏时的第一件事就是看它(§9 展开)。</p>
+
+        <h2>6. Ctrl-a / Ctrl-x:数字引擎</h2>
+        <p>普通模式下 <kbd>Ctrl</kbd>+<kbd>a</kbd> 把<strong>光标行内最近的数字加一</strong>,<kbd>Ctrl</kbd>+<kbd>x</kbd> 减一。「最近」的精确定义:光标所在或之后的行内第一个数字 —— 光标不用精确落在数字上,它自己会找。它还认得负号(<code>-1</code> 会正确变成 <code>-2</code>),带计数前缀则一步到位:<kbd>5</kbd><kbd>Ctrl</kbd>+<kbd>a</kbd> 直接 +5。单用时它是「调参神器」(改数组长度、改重试次数),配上宏,它是「序列生成器」:</p>
+
+        <div class="demo-slot" data-demo="ch10-05-macro-increment"></div>
+
+        <p>演示里宏录的是 <kbd>y</kbd><kbd>y</kbd><kbd>p</kbd><kbd>Ctrl</kbd>+<kbd>a</kbd> 四下:复制当前行、贴到下面、把副本的数字 +1。注意它的精妙之处 —— <strong>这个宏天生自推进</strong>:回放结束后光标正好停在新行上,也就是下一次的工作位,连结尾的 <kbd>j</kbd> 都不用。这是宏设计纪律一的另一种达成方式:与其「做完挪过去」,不如让操作的副产品就是正确落位。批量生成测试数据、给几十行加编号、按序号批量改配置,全是这一个宏的变体;反过来,编号要减小、要倒序,把 Ctrl-a 换成 Ctrl-x 即可。</p>
+        <p>实战里宏与数字的组合还有个高频变体:重排编号。一堆 <code>id = 7, id = 3, id = 12</code> 乱序的行,先全部改成同一个数(<code>:%s/id = \d\+/id = 0/</code> 之类),再用 <kbd>y</kbd><kbd>y</kbd><kbd>p</kbd><kbd>Ctrl</kbd>+<kbd>a</kbd> 型宏或直接 <kbd>Ctrl</kbd>+<kbd>a</kbd> <kbd>j</kbd> <kbd>.</kbd> 逐行 +1 —— 「归零再生长」比逐个改省心得多。思路比按键重要:看到「连续编号」,条件反射应该是 Ctrl-a 而不是手敲数字。</p>
+
+        <h2>7. :normal:把按键批量发货</h2>
+        <p>第三档工具走命令行。<code>:normal {按键}</code> 的语义:对 range 范围内的<strong>每一行</strong>,把后面的按键当作在普通模式下敲进去。演示 3 的补分号任务,它的终极形态是一行命令:</p>
+
+        <div class="demo-slot" data-demo="ch10-06-normal-batch"></div>
+
+        <p>三个知识点从演示里长出来:①<strong>不用写 Esc</strong> —— <code>:normal</code> 在按键序列结束时自动收尾,强制回到普通模式,所以 <code>A;</code> 后面什么都不用补;②<strong>一条 :normal 是一个撤销单元</strong> —— 四行的修改一个 <kbd>u</kbd> 全退,批量操作配齐了后悔药;③range 位置随便换 —— <code>:%</code> 全文件、<code>:2,3</code> 行区间,而最凶的组合是接在 <code>:g</code> 后面:<code>:g/console/normal A  // TODO</code> 对每个 console 行行尾追加备注,<code>:g/^\s*$/normal dd</code> 删空行 —— <a href="ch08.html">第 8 章</a>「按内容挑行」与本章「按按键施工」合体,几乎能表达一切批量编辑。</p>
+        <p>它和 <code>:s</code> 的分工一句话:<strong>:s 改的是「文本内容」,:normal 干的是「按键动作」</strong>。给行尾加分号,用 <code>:s/$/;/</code> 其实也行,但要「行尾加分号、行首再去个空格、再砍掉行尾注释」这种多动作复合,:s 要写三条还容易正则打架,:normal 一串 <kbd>A</kbd><kbd>;</kbd>……直接复用你的普通模式手感。判断标准:想不出正则怎么写、但手指会按 —— 就用 :normal。</p>
+
+        <h2>8. 可连发的宏:搜索驱动</h2>
+        <p>宏的真正威力在「连发」:<kbd>2</kbd><kbd>2</kbd><kbd>@</kbd><kbd>a</kbd> 把宏连放 22 次。但连发有个前提 —— 每次执行结束,光标必须正好落在<strong>下一个目标</strong>上。行规则的数据(演示 5)靠结构自推进;不规则的目标(散落在各处的变量名),靠<strong>搜索</strong>导航。把改名任务升级成宏版:</p>
+
+        <div class="demo-slot" data-demo="ch10-07-macro-search"></div>
+
+        <p>这套「<kbd>*</kbd> 设好查找词 → 录「改当前 + <kbd>n</kbd> 跳下一个」→ <code>N@a</code> 连发」是宏的头号经典模式,三个设计细节值得逐个拆:①<strong>查找词要在录制前设好</strong>(先 <kbd>*</kbd> <kbd>N</kbd> 侦查一圈再按 q),宏里的 <kbd>n</kbd> 才有词可跳;②<strong>宏以 n 结尾</strong>,执行完光标自动指向下一个猎物,连发的每一步都「有的放矢」;③<strong>失败即刹车</strong> —— 最后一次执行中 <kbd>n</kbd> 找不到下一个匹配,出错的一步会中止宏,连发自然停止,不会空转 20 次。连停止条件都是免费的,这是搜索驱动宏最优雅的地方。</p>
+        <p>连发的操作纪律只有一条:<strong>先试一发,再连发</strong>。录完宏先按一次 <kbd>@</kbd><kbd>a</kbd>,亲眼确认第二处被正确加工、光标落点正确,然后再放心 <code>18@a</code> —— 一发验证的成本是一秒,连发出错的成本是按十几次 u。顺带把「22@q」这个江湖黑话翻译了:它不是特殊按键,就是「数字 22 + @ + 寄存器名 q」的连发,你在演示 5 里已经亲手放过了。</p>
+
+        <h2>9. 宏的调试与修复:录砸了怎么办</h2>
+        <p>宏没有保存提示、没有断点,砸了很正常,修复套路却很固定,按顺序用:<strong>第一步永远是 <kbd>u</kbd></strong> —— 宏的每次回放是独立的撤销单元,连按 u 逐步退干净(IDE 里 Cmd-z 同效);<strong>第二步判断砸在哪</strong>:是宏内容错了(重录),还是起始位置错了(退干净、摆好位置重放)?内容错的标准修法是<strong>覆盖重录</strong> —— <kbd>q</kbd><kbd>a</kbd> 会直接覆盖 a 抽屉,不用先删除什么;只有「宏大体对、只差最后一下」时才用<strong>追加录制</strong> <kbd>q</kbd><kbd>A</kbd>(大写寄存器名,往 a 里续按键,和第 9 章 <code>"A</code> 追加文本同理)—— 比如录完发现忘了结尾的 <kbd>j</kbd>,<kbd>q</kbd><kbd>A</kbd> <kbd>j</kbd> <kbd>q</kbd> 补上即可。</p>
+        <p>排查宏内容,最快的办法是 <code>:reg a</code> —— 宏就是寄存器,清单里能看到它存的按键序列(比如看到 <code>ciwcount^[An;j</code>,一眼发现忘了 Esc 的位置)。三个预防习惯比修复更值钱:①<strong>录前摆好位</strong> —— 光标停在第一个目标的正确位置、查找词设好,再按 <kbd>q</kbd>;②<strong>样板行先手做一遍</strong> —— 想清楚每一步,手指顺过一遍再录,录制时的犹豫和错按会全部被记进去;③<strong>宏内只用相对移动</strong>(<kbd>j</kbd> <kbd>w</kbd> <kbd>n</kbd> <kbd>f</kbd>),绝不用 <kbd>g</kbd><kbd>g</kbd>/<kbd>G</kbd> 这种绝对跳转 —— 第二次回放时它们会把光标甩到同一个地方,连发立刻全错。这三条写在陷阱区,值得抄到便签上。</p>
+
+        <h2>10. 决策表:四种重复工具怎么选</h2>
+        <p>本章加多光标,重复类工具齐了。按意图选:</p>
+        <table class="ktable">
+          <thead><tr><th>场景</th><th>首选</th><th>理由</th></tr></thead>
+          <tbody>
+            <tr><td>同一处小修改,要做 N 次,每处一个动作</td><td><kbd>.</kbd></td><td>零录制成本,「移动 + 重复」两键一行</td></tr>
+            <tr><td>每处要做两个以上动作(成套加工)</td><td>宏 <kbd>q</kbd><kbd>a</kbd>…</td><td>一串按键整体重放,连发</td></tr>
+            <tr><td>全文件/选区做同一加工,一句话能圈范围</td><td><code>:normal</code></td><td>一行命令批量发货,单撤销单元</td></tr>
+            <tr><td>按内容挑行做动作(删日志行、给 TODO 行加备注)</td><td><code>:g/…/normal …</code></td><td>:g 挑行 + normal 施工</td></tr>
+            <tr><td>批量生成/修改连续编号</td><td><kbd>Ctrl</kbd>+<kbd>a</kbd> + 宏</td><td>yyp Ctrl-a 自推进,或归零再生长</td></tr>
+            <tr><td>散落各处的相同词,每处还要微调</td><td>多光标(<kbd>g</kbd><kbd>b</kbd> / <kbd>Cmd</kbd>+<kbd>d</kbd>)</td><td>内容匹配圈选,逐处可调(第 7 章 §9)</td></tr>
+            <tr><td>真正的语义重命名</td><td>IDE 的 <kbd>F2</kbd></td><td>跨文件懂作用域,文本工具别越权(第 8 章 §9)</td></tr>
+          </tbody>
+        </table>
+        <p>选型的「判断三问」:①<strong>每处的修改是一个动作还是一套动作?</strong>一个动作用 <kbd>.</kbd>,一套动作用宏。②<strong>范围能用一句话(行号/选区/模式)圈定吗?</strong>能就用 :normal / :g,范围不规则靠搜索或块。③<strong>目标是「同内容」还是「同位置」?</strong>同内容想 <code>:s</code>、<code>*</code>+<kbd>.</kbd>、多光标;同位置想块选、宏。三问下来工具基本唯一 —— 剩下的就是把手感练熟。</p>
+
+        <h2>11. 每日训练计划(30 分钟 × 3 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>重放演示 1–2,读 §1–§3;靶场做 5 组「两单元修改」,数 u 次数验证粒度</td><td>能预判 u 退到哪</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 1 + 练习 2 前半(`.` 节奏)</td><td>j `.` 不看键盘</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 3–5,读 §4–§6;宏三连各录 3 遍</td><td>qa…q 收录自如</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 2 后半 + 练习 3</td><td>@a / @@ / 5@a 三种回放都顺</td></tr>
+            <tr><td rowspan="2">第 3 天</td><td>0–10 分钟</td><td>重放演示 6–7,读 §7–§10;抄一遍设计三纪律</td><td>能复述三纪律</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 4:盲测毕业考</td><td>10 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>12. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>撤销按意图计</strong>:一段插入会话、一条命令各算一步,<kbd>u</kbd> 退整段、<kbd>Ctrl</kbd>+<kbd>r</kbd> 拿回来 —— 这是敢批量操作的安全网;</li>
+          <li><strong>`.` 单格记忆,宏成套重放</strong>:一个动作用「移动 + <kbd>.</kbd>」,一套动作用 <kbd>q</kbd><kbd>a</kbd>…<kbd>q</kbd> + <kbd>@</kbd><kbd>a</kbd>,范围明确上 <code>:normal</code>;</li>
+          <li><strong>宏设计三纪律</strong>:结尾自动推进(j / n / 操作副作用落位)、只用相对移动、连发前先试一发 —— 砸了就 u,重录永远不亏。</li>
+        </ol>
+        <p>单文件的武功至此全部练成。下一章把镜头拉远:多文件与窗口 —— 缓冲区、分屏、标签页,以及在 IDE 里 vim 与原生功能如何分工。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:撤销单元实验(10 分钟)</summary>
+          <div class="answer">
+            <p>靶场任选文件:①<kbd>A</kbd> 打一段 10 字注释 <kbd>Esc</kbd>,再 <kbd>o</kbd> 打一行字 <kbd>Esc</kbd>,数一数 <kbd>u</kbd> 几次回到原状(答:2 次);②插入模式里打五个字、按回车继续打五个字、<kbd>Esc</kbd> —— 验证 <kbd>u</kbd> 一次退掉整段(包括换行);③一条 <code>:%s/let/const/g</code> 后一次 <kbd>u</kbd> 全回滚;④改砸一行后用 <kbd>U</kbd> 行级撤销。通过线:每步动手前先说出「u 会退到哪」。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:dot 节奏与边界(10 分钟)</summary>
+          <div class="answer">
+            <p>①造 8 行缺分号代码,用 <kbd>A</kbd><kbd>;</kbd><kbd>Esc</kbd> + <kbd>j</kbd> <kbd>.</kbd> ×7 补完,计时;②复现边界事故:某行 <kbd>x</kbd> 删一字符,连用两次 <kbd>j</kbd> <kbd>.</kbd>,再 <kbd>d</kbd><kbd>d</kbd> 删一行,按 <kbd>.</kbd> 观察「记忆被覆盖」,<kbd>u</kbd> 救回;③第 8 章流水线复习:<kbd>*</kbd> + <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> + <kbd>Esc</kbd> + <kbd>n</kbd> <kbd>.</kbd> 改名 6 处。通过线:①全程不看键盘,②能提前说出 `.` 此刻记的是什么。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:宏三连(10 分钟)</summary>
+          <div class="answer">
+            <p>三个任务各录 3 遍:①双动作宏:<kbd>q</kbd><kbd>a</kbd> <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd><kbd>const</kbd> <kbd>Esc</kbd> <kbd>A</kbd><kbd>;</kbd><kbd>Esc</kbd> <kbd>j</kbd> <kbd>q</kbd>,然后 <kbd>@</kbd><kbd>a</kbd>、<kbd>@</kbd><kbd>@</kbd> 逐行放完;②数字宏:一行 <code>id = 1</code>,录 <kbd>y</kbd><kbd>y</kbd><kbd>p</kbd><kbd>Ctrl</kbd>+<kbd>a</kbd>,<code>6@a</code> 生成到 7;③搜索宏:<kbd>*</kbd> <kbd>N</kbd> 后录 <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> 新名 <kbd>Esc</kbd> <kbd>n</kbd>,<code>N@a</code> 连发改完全部。每个任务结束后 <code>:reg a</code> 看一眼宏内容。通过线:三任务的连发都不出错、不用修。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>10 题先说答案再看:①重做刚撤销的修改 ②行级撤销 ③重复最近一次修改 ④把宏录进 b ⑤执行 b 里的宏 ⑥重复最近执行的宏 ⑦宏连发 7 次 ⑧光标行数字 +1 / −1 ⑨一行命令给全文件行尾加分号 ⑩给所有含 console 的行行尾加备注。答案:Ctrl-r / U / . / qb … q / @b / @@(或 @ @)/ 7@b / Ctrl-a / Ctrl-x / :%normal A; / :g/console/normal A 备注。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 插入模式里用方向键/鼠标挪光标,单元被拆散</span>
+          插入过程中用方向键或鼠标移动,会把「一段会话」拆成多个撤销单元:<kbd>u</kbd> 只退一半,<kbd>.</kbd> 的重放也从移动处截断 —— 加分号加到一半的诡异状态就是这么来的。纪律:<strong>插入里要挪位置,先 <kbd>Esc</kbd> 挪完再进</strong>;实在要临时挪,用 <kbd>Ctrl</kbd>+<kbd>o</kbd> 单发跳(第 6 章)也能保住单元完整。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 从错误的位置开录宏,连发全错</span>
+          光标没摆对、查找词没设好就按 <kbd>q</kbd>,录出来的宏从第二发开始全部加工错位置 —— 连发 20 次就是 20 处错改。录前三件事:<strong>样板行先手动做一遍、光标摆到下一个目标、搜索宏先 * 设词</strong>。录完先单发一发验证,再连发。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 宏里用了 gg / G 等绝对跳转</span>
+          宏内的 <kbd>g</kbd><kbd>g</kbd>、<kbd>G</kbd>、<code>:42</code> 这类<strong>绝对定位</strong>,每次回放都把光标甩到同一个地方 —— 第一次对,第二次开始全乱。宏内导航只用<strong>相对移动</strong>:<kbd>j</kbd>/<kbd>n</kbd>/<kbd>w</kbd>/<kbd>f</kbd>,或以「当前行」为锚的操作(yyp 就不依赖位置)。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 Ctrl-a 没反应,以为快捷键坏了</span>
+          <kbd>Ctrl</kbd>+<kbd>a</kbd> 找的是<strong>本行</strong>光标处及其后的第一个数字:数字在光标前面,它够不着;数字在别的行,更不关它事。没反应时先把光标挪到数字前(<kbd>w</kbd> 多跳几下或 <kbd>f</kbd> 数字),再按。另外注意终端环境下 Ctrl-a 可能被终端抢占(行首快捷键),IDE 内嵌 vim 无此问题。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li><kbd>u</kbd>/<kbd>Ctrl</kbd>+<kbd>r</kbd> 与 VSCode 的撤销栈打通:粒度尽量保持 vim 会话级,个别场景与 <kbd>Cmd</kbd>+<kbd>z</kbd> 有出入 —— 习惯用哪套就固定用哪套,别来回混</li>
+              <li><kbd>.</kbd>、<kbd>q</kbd> 录制、<kbd>@</kbd><kbd>a</kbd>/<kbd>@</kbd><kbd>@</kbd> 连发、<kbd>Ctrl</kbd>+<kbd>a</kbd>/<kbd>x</kbd>:VSCodeVim 全部支持,照本章用</li>
+              <li><code>:normal</code> 可用;复杂按键序列偶有与终端 vim 行为不一致的情况,结果怪异就改用宏回放</li>
+              <li>状态栏会显示正在录制的寄存器(如 RECORDING @a);VSCode 原生 <kbd>Cmd</kbd>+<kbd>z</kbd>/<kbd>Cmd</kbd>+<kbd>shift</kbd>+<kbd>z</kbd> 一直可用作兜底</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>IdeaVim 对本章内容实现完整:<kbd>q</kbd>/<kbd>@</kbd>/<code>:normal</code>/<kbd>Ctrl</kbd>+<kbd>a</kbd> 的行为与终端 vim 一致,撤销粒度同样是会话级</li>
+              <li><kbd>u</kbd>/<kbd>Ctrl</kbd>+<kbd>r</kbd> 与 IDEA 的撤销(<kbd>Cmd</kbd>+<kbd>z</kbd>)整合在同一栈里,来回切换不会乱</li>
+              <li><code>:reg a</code> 能看到宏的按键序列,排查宏内容同样好用;宏还可以写进 <code>.ideavimrc</code> 预定义(进阶,第 12 章给配置全文)</li>
+              <li>IDEA 自带的宏录制(Tools → Record Macro)与 vim 宏是两套独立体系 —— 选一套用,别交叉,文件归属清楚才不乱</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 命令</th><th>作用</th><th>按键 / 命令</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>u</kbd> / <kbd>Ctrl</kbd>+<kbd>r</kbd></td><td>撤销 / 重做(按会话单元)</td><td><kbd>U</kbd></td><td>撤销本行最近所有修改</td></tr>
+            <tr><td><kbd>.</kbd></td><td>重放最近一次修改(单格记忆)</td><td><kbd>j</kbd> <kbd>.</kbd> / <kbd>n</kbd> <kbd>.</kbd></td><td>移动 + 重复的黄金节奏</td></tr>
+            <tr><td><kbd>q</kbd><kbd>a</kbd> … <kbd>q</kbd></td><td>录制宏进 a 抽屉</td><td><kbd>@</kbd><kbd>a</kbd> / <kbd>@</kbd><kbd>@</kbd></td><td>回放 a / 重复最近宏</td></tr>
+            <tr><td><code>22@a</code></td><td>宏连发 22 次(失败自动停)</td><td><kbd>q</kbd><kbd>A</kbd> … <kbd>q</kbd></td><td>往 a 追加按键(补录)</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>a</kbd> / <kbd>Ctrl</kbd>+<kbd>x</kbd></td><td>行内最近数字 +1 / −1</td><td><code>:%normal A;</code></td><td>按键批量发给每行(免 Esc)</td></tr>
+            <tr><td><code>:g/模式/normal …</code></td><td>按内容挑行执行按键</td><td><code>:reg a</code></td><td>查看宏存的按键序列</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:一个动作用 .,一套动作用宏,整片范围用 :normal;宏要自动推进、只用相对移动、连发前先试一发 —— 砸了就 u。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch09.html">← 第 9 章 · 寄存器与剪贴板</a>
+          <a href="ch11.html">第 11 章 · 多文件与窗口 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch10.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 12 章 · IDE 集成:配置与特色命令 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch12" data-ch="ch12">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 12 · 集成与实战 上</div>
+        <h1>IDE 集成:把 Vim 装进 VSCode 与 IDEA</h1>
+        <div class="ch-meta-line">预计阅读 30 分钟(含练习约 1 小时)· 前置:第 1、11 章 · 本章演示 6 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>拿到两份<strong>可直接抄走的推荐配置</strong>:VSCodeVim 的 settings.json 片段与 IdeaVim 的 <code>.ideavimrc</code> 全文(逐项注明来源与默认值)</li>
+          <li>打通<strong>五根导航桥</strong>:<kbd>g</kbd><kbd>d</kbd> 跳定义、<kbd>g</kbd><kbd>h</kbd> 悬停、<kbd>K</kbd> 文档、<kbd>Ctrl</kbd>+<kbd>o</kbd>/<kbd>Ctrl</kbd>+<kbd>i</kbd> 跳转链 —— vim 出发,IDE 导航</li>
+          <li>用好 <strong>leader 键</strong>:自定义命令的统一发射台,把 <code>&lt;leader&gt;d</code>、<code>&lt;leader&gt;w</code> 练成肌肉记忆</li>
+          <li>掌握 <strong>surround 三件套</strong>(<code>ys</code> 加壳 / <code>cs</code> 换壳 / <code>ds</code> 拆壳)与 <strong><kbd>g</kbd><kbd>b</kbd> 多光标</strong></li>
+          <li>学会<strong>冲突仲裁</strong>:一个键两个主人时,IDEA 用 <code>sethandler</code>、VSCode 用 <code>vim.handleKeys</code> 判归属</li>
+          <li>内化分工哲学:<strong>vim 键位负责编辑,IDE 负责导航与理解代码</strong> —— 融合,而不是对抗</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 融合的哲学:一个编辑器,两颗大脑</h2>
+        <p><a href="ch11.html">第 11 章</a>结尾说过:定位交给 IDE,加工交给 vim。本章把那句话落成配置文件。装好插件只是「能跑」;要跑得顺,得回答三个问题:<strong>哪些键听 vim 的、哪些听 IDE 的、出了冲突听谁的</strong>。默认状态下这个答案是凑合出来的 —— 比如 VSCodeVim 默认没开 easymotion、IdeaVim 的 Ctrl-a 与 IDEA 的多光标抢键 —— 本章的推荐配置就是把这三个问题一次性回答清楚。</p>
+        <p>先立总原则,后面所有配置都从它推导:<strong>vim 的价值在「编辑语言」(动词 + 名词、寄存器、宏),IDE 的价值在「语义理解」(索引、跳转、重构、调试)</strong>。所以编辑类按键一律让 vim 全权处理(方向键、Ctrl 键交给 vim 后不要手软);导航与语义类按键,能用 IDE 原生就别硬找 vim 等价物 —— <kbd>Cmd</kbd>+<kbd>p</kbd> 找文件、<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>f</kbd> 全局搜索,这些键从来不与 vim 冲突,放手用。真正的灰色地带只有一小撮(本章 §8 的 Ctrl-a、Ctrl-f),那才是需要动手仲裁的地方。</p>
+        <p>还有一个心态问题值得先说破:不要试图把 IDE「调教回纯 Vim」。装插件的目的是<strong>在保留 IDE 全部能力的前提下,把编辑这一环换成 vim</strong> —— 侧边栏、鼠标、菜单、调试器一个都不用戒。看到本站演示里按 <kbd>g</kbd><kbd>b</kbd> 时,鼠标点选区依然可用;按 <kbd>Cmd</kbd>+<kbd>d</kbd> 也好使。双轨并存的冗余不是浪费,是安全垫。</p>
+
+        <h2>2. VSCodeVim:settings.json 推荐段</h2>
+        <p>VSCodeVim 的配置住在 VSCode 的 settings.json 里(命令面板 → Preferences: Open User Settings (JSON))。下面这段是按官方 README 逐项核对的推荐值 —— <strong>每一项都注明默认值</strong>,你可以按需删减:</p>
+<pre><code>{
+  "vim.leader": "&lt;space&gt;",              // leader 键,默认是 "\"(反斜杠)
+  "vim.easymotion": true,               // easymotion 标签跳,默认 false —— 建议开
+  "vim.hlsearch": true,                 // 高亮全部匹配,默认 false —— 建议开
+  "vim.incsearch": true,                // 边打边跳(默认就是 true,写出来求心安)
+  "vim.useSystemClipboard": false,      // y/p 默认不与系统剪贴板互通(第 9 章讲过取舍)
+  "vim.normalModeKeyBindingsNonRecursive": [
+    { "before": ["&lt;leader&gt;", "d"], "after": ["d", "d"] },   // &lt;leader&gt;d = 删整行
+    { "before": ["&lt;leader&gt;", "w"], "commands": [{ "command": "workbench.action.files.save" }] }
+  ],
+  "vim.handleKeys": { "&lt;C-f&gt;": false }   // 把 Ctrl-f 还给 VSCode 原生查找(见 §8)
+}</code></pre>
+        <p>几个核对结论划重点:①<strong>surround 不用配</strong> —— <code>vim.surround</code> 默认已开,ys/cs/ds 开箱即用(§6);②<strong>相对行号不归插件管</strong> —— VSCodeVim 没有行号设置,行号是 VSCode 编辑器自己的功能,想要第 3 章那种「当前行绝对、其余相对」,把 VSCode 设置 <code>editor.lineNumbers</code> 调成 <code>relative</code> 即可;③映射一律用 <strong>NonRecursive</strong> 版本的字段,防止映射引用自身时死循环;④leader 的官方默认是反斜杠 <code>\</code>,但社区主流推荐空格 —— 又大又独立,按不坏任何东西。</p>
+        <p>插入模式里的 Cmd 键(c/v/z/a)VSCodeVim 默认不拦截 —— 所以「插入模式里 Cmd-v 粘贴」天然可用,这是很多新手担心的问题,答案是不用管。真正被接管的是 Ctrl 系按键(Windows 上尤其明显),官方提供 <code>vim.handleKeys</code> 逐个归还,<code>"&lt;C-f&gt;": false</code> 就是把查找还给 VSCode 的标准写法 —— true/false 的意思是「这个键归不归 vim 管」。</p>
+
+        <h2>3. IdeaVim:.ideavimrc 推荐全文</h2>
+        <p>IDEA 这边更像真 Vim:配置是一个独立的 vimrc 文件,默认路径 <code>~/.ideavimrc</code>(也支持 XDG 路径与 <code>IDEA_VIM_CUSTOM_VIMRC</code> 环境变量;想复用终端配置可以写一行 <code>source ~/.vimrc</code>)。改完文件后按 IDEA 弹出的 reload 提示(或重启)生效。推荐全文:</p>
+<pre><code>" —— 基础显示 ——
+set number               " 绝对行号
+set relativenumber       " 相对行号(与上一行同时开 = 当前行绝对、其余相对)
+set incsearch            " 增量查找
+set hlsearch             " 高亮全部匹配
+
+" —— 插件 ——
+set surround             " ys/cs/ds 三件套(VSCodeVim 默认开,这边要写一行)
+set easymotion           " 标签瞬移
+
+" —— 冲突仲裁(§8)——
+sethandler &lt;C-a&gt; a:ide    " Ctrl-a 交还 IDEA:原生是「添加下一个匹配选中」
+
+" —— leader 与映射 ——
+let mapleader = " "
+map &lt;leader&gt;f &lt;Plug&gt;(easymotion-s)      " 官方示例:前跳
+map gh &lt;Action&gt;(ShowErrorDescription)   " 官方示例:gh = 悬停显示错误描述</code></pre>
+        <p>IDEA 特色的一朵花是 <code>&lt;Action&gt;()</code>:任何 IDE 动作都能绑到 vim 键上。动作 ID 哪里找?命令行敲 <code>:actionlist 关键词</code> 列出所有匹配的动作(比如 <code>:actionlist Goto</code> 找各种跳转),或在帮助菜单开「IdeaVim: track action IDs」后点菜单,状态栏就打印你点的动作 ID —— 把常用的动作绑上 leader,IDEA 的功能就长进了你的 vim 世界。注意官方提醒:<code>:action</code> 命令适合命令行直接执行,要写进映射请用 <code>&lt;Action&gt;(id)</code> 形式。</p>
+
+        <h2>4. 五根导航桥:gd / gh / K / Ctrl-o / Ctrl-i</h2>
+        <p>编辑键归 vim,但「去看定义」「查文档」这类导航,vim 键可以直接扣动 IDE 的扳机 —— 这是两个插件最讨喜的缝合点。<kbd>g</kbd><kbd>d</kbd>(go to definition)是官方文档明确支持的:VSCodeVim 里它等于转到定义,IDEA 里 IdeaVim 同样实现了它。往返闭环:</p>
+
+        <div class="demo-slot" data-demo="ch12-01-gd-roundtrip"></div>
+
+        <table class="ktable">
+          <thead><tr><th>键</th><th>作用</th><th>等价的 IDE 原生</th><th>什么时候用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>g</kbd><kbd>d</kbd></td><td>跳到定义</td><td>Cmd+b / Cmd+点击</td><td>看函数/类型的实现,手指不离主键区</td></tr>
+            <tr><td><kbd>g</kbd><kbd>h</kbd></td><td>悬停提示(IDEA 可绑 <code>&lt;Action&gt;(ShowErrorDescription)</code>)</td><td>鼠标悬停</td><td>看一眼类型签名/错误描述,不想动鼠标</td></tr>
+            <tr><td><kbd>K</kbd>(shift+k)</td><td>文档</td><td>Quick Documentation</td><td>查参数含义与返回值,比 gd 轻</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>o</kbd> / <kbd>Ctrl</kbd>+<kbd>i</kbd></td><td>跳转链后退 / 前进</td><td>Cmd+- / Cmd+shift+-</td><td>看完定义原路返回(第 3 章 § 跳转表)</td></tr>
+            <tr><td><kbd>g</kbd><kbd>b</kbd>(下节)</td><td>加多光标</td><td>Cmd+d / Alt+J</td><td>散落相同词逐个点名</td></tr>
+          </tbody>
+        </table>
+        <p>工作流串起来就是一条流水线:<kbd>g</kbd><kbd>d</kbd> 进定义 → 看完 <kbd>Ctrl</kbd>+<kbd>o</kbd> 回来 → 改两笔 → <kbd>g</kbd><kbd>d</kbd> 再进下一个。跳转链是全局的(第 3 章讲过),gd 的每次跳跃都自动入链 —— 所以「去—回—再去」不需要你记路,链都替你记着。</p>
+        <p>三个键的分工别混:<kbd>g</kbd><kbd>d</kbd> 是「去看实现」,<kbd>K</kbd> 是「查文档」,<kbd>g</kbd><kbd>h</kbd> 是「扫一眼提示」—— 想知道这个函数怎么用按 K,想知道这个报错什么意思按 gh,想改它的实现才按 gd。轻重有序,导航的成本就低。还有一条纪律值得立:<strong>跳转链别当书签用</strong> —— 链是「最近走过的路」,会被新的跳转不断冲刷;真正要反复回访的位置,用第 3 章的书签(<kbd>m</kbd><kbd>a</kbd> / <kbd>'</kbd><kbd>a</kbd>)钉住,两套体系各司其职。</p>
+
+        <h2>5. leader:自定义命令的发射台</h2>
+        <p>vim 自带的键再全,也总有你想加的私货:一键保存、一键切换注释、一键跑测试。这些命令挂在哪?挂在 <strong>leader 键</strong>上 —— 一个专门留给自定义映射的前缀键,默认反斜杠,社区惯例改成<strong>空格</strong>(VSCode 写 <code>"vim.leader": "&lt;space&gt;"</code>,IDEA 写 <code>let mapleader = " "</code>)。选空格的理由很实在:它是键盘上最大的键、普通模式下按空格本身只是右移一格(几乎没人用)、而且拇指按空格零位移 —— 白送的黄金地段。</p>
+
+        <div class="demo-slot" data-demo="ch12-02-leader-map"></div>
+
+        <p>使用 leader 的心智模型与第 5 章的「动词 + 名词」一脉相承:<strong>leader 是自定义动词的「待决状态」</strong> —— 按下后 vim 挂起,等你补完后半段。久了会形成自己的方言:比如 <code>&lt;leader&gt;d</code> 删行、<code>&lt;leader&gt;w</code> 保存、<code>&lt;leader&gt;f</code>(IDEA)触发 easymotion、<code>&lt;leader&gt;/</code> 关高亮…… 方言不用多,五六个高频命令就够回本。两个注意:①映射写进 <code>normalModeKeyBindingsNonRecursive</code>(NonRecursive 防自引用);②IDEA 里绑 IDE 动作用 <code>&lt;Action&gt;(id)</code> 而不是 <code>:action</code>(§3 的官方提醒)。</p>
+
+        <h2>6. surround:加壳、换壳、拆壳</h2>
+        <p>vim-surround 是 Vim 世界最著名的插件之一,两个 IDE 插件都内置了(VSCodeVim 默认开;IDEA 要写 <code>set surround</code>)。它解决的问题:给<strong>已经存在的文本</strong>穿衣服 —— 第 4 章的 <kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 是「改衣服里的内容」,surround 是直接改「衣服本身」:</p>
+
+        <div class="demo-slot" data-demo="ch12-03-surround"></div>
+
+        <table class="ktable">
+          <thead><tr><th>按键</th><th>口诀</th><th>干什么</th><th>典型场景</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>y</kbd><kbd>s</kbd>{对象}{壳}</td><td>you surround</td><td>给对象<strong>加</strong>壳(<code>ysiw"</code> 给词加引号)</td><td>裸标识符变字符串、给词加括号强调</td></tr>
+            <tr><td><kbd>c</kbd><kbd>s</kbd>{旧壳}{新壳}</td><td>change surround</td><td><strong>换</strong>壳(<code>cs"'</code> 双引号换单引号)</td><td>引号风格统一、单行注释换块注释</td></tr>
+            <tr><td><kbd>d</kbd><kbd>s</kbd>{壳}</td><td>delete surround</td><td><strong>拆</strong>壳(<code>ds"</code> 去掉引号)</td><td>去掉多余的括号/引号包裹</td></tr>
+          </tbody>
+        </table>
+        <p>壳的种类除了引号括号,还有标签:<code>ysiwt&lt;em&gt;</code> 把词包进 <code>&lt;em&gt;</code> 标签、<code>cst&lt;strong&gt;</code> 换标签(与第 4 章 <kbd>c</kbd><kbd>i</kbd><kbd>t</kbd> 改标签内容正好互补:cit 改肉,cst 换皮)。可视模式里还有简写:选中后 <kbd>S</kbd>{壳} 直接包裹 —— 选中三行按 <kbd>S</kbd><code>)</code> 就是给它们套括号。三件套的按键结构值得背熟:<strong>ys 是「加」、cs 是「换」、ds 是「拆」,后面接的都是「对象 + 壳」或「旧壳 + 新壳」</strong>,语法与第 4 章的文本对象完全复用。</p>
+
+        <h2>7. gb 多光标:vim 键选人,IDE 光标干活</h2>
+        <p>第 7 章 §9 与多光标划过界:块选管「几何列」,多光标管「内容匹配」。VSCodeVim 给内容匹配这条线留了 vim 键位 —— <kbd>g</kbd><kbd>b</kbd>,官方文档明确记载:等效于 Cmd-d,「在下一个与光标词相同的词上添加光标」。IDEA 侧对应原生 <kbd>Alt</kbd>+<kbd>J</kbd>(IdeaVim 不拦截它,直接用原生即可)。</p>
+
+        <div class="demo-slot" data-demo="ch12-04-gb-multicursor"></div>
+
+        <p>多光标的正确打开方式是「<strong>选人 → 打字 → Esc 收工</strong>」:gb 点名(几处点几个)、编辑键施工(ciw、A、x 都行,每根光标各执行一遍)、Esc 把光标收拢成一根。它与 <kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd>(第 8 章)是同任务的两种口味:dot 流水线逐处过目、顺带看语境;gb 多光标一屏选完、一次改完,但选人时就要看准。经验法则:出现点<strong>密集且确定无害</strong>(同一个文件里刚写错的变量名)用 gb;<strong>稀疏或语境可疑</strong>(可能与注释撞名)用 * + n + . 或 :s//gc。</p>
+        <p>把「同款修改发到多处」的三条路并排看一遍,选型就彻底清晰了:<strong>块选</strong>(第 7 章)按几何列圈,位置规则(每行同一列)时无敌;<strong>多光标</strong>按内容圈,散落但同词时顺手;<strong>宏</strong>(第 10 章)按「重复的动作序列」圈,每处要多步加工时称王。三条路的圈法分别是<strong>位置、内容、动作</strong> —— 想清楚你要重复的东西属于哪一种,工具自动浮现。第 13 章的案例集会让这个选型器跑起来。</p>
+
+        <h2>8. 冲突仲裁:一个键,两个主人</h2>
+        <p>插件装上后,总有一小撮键「vim 想要、IDE 也想要」:Ctrl-a 在 vim 里是数字加一,在 IDEA 里(Windows/Linux 键位)是全选 Select All;Ctrl-f 在 vim 里是下翻页,在 VSCode 里是查找。这类冲突两边都给了一行式仲裁:</p>
+
+        <div class="demo-slot" data-demo="ch12-05-ctrla-sethandler"></div>
+
+        <table class="ktable">
+          <thead><tr><th>侧</th><th>配置</th><th>示例</th><th>语义</th></tr></thead>
+          <tbody>
+            <tr><td>IDEA</td><td><code>sethandler 键 模式:归属</code></td><td><code>sethandler &lt;C-a&gt; a:ide</code></td><td>所有模式下 Ctrl-a 归 IDE;删掉这行(或写 <code>a:vim</code>)则归 vim</td></tr>
+            <tr><td>VSCode</td><td><code>"vim.handleKeys": { "键": false }</code></td><td><code>"&lt;C-f&gt;": false</code></td><td>false = 这个键不归 vim,交还 VSCode 原生</td></tr>
+          </tbody>
+        </table>
+        <p>判给谁的原则还是 §1 那句话,但更具体:<strong>谁的功能在你的工作流里更常用就判给谁</strong>。天天写码要全选的场景,把 Ctrl-a 判给 IDE(数字加一还能用可视块或宏绕);第 10 章宏的重度用户、天天 Ctrl-a 造序列,就把它留给 vim(全选还有 Cmd-a)。Ctrl-f 判给 VSCode 查找也划算 —— 翻页有 Ctrl-d/Ctrl-u(vim 键,两边都保留)。<strong>仲裁没有标准答案,只有「你的工作流」这一个参考系</strong>。判完写进配置文件,别依赖记忆 —— 下次更新插件,GUI 弹窗的选择可能会被重置,配置文件里那行才是契约。</p>
+        <p>顺手列一份常见冲突清单(Windows/Linux 键位为主;mac 上 IDE 多用 Cmd 系,冲突天然少一档):<strong>Ctrl-d</strong> —— vim 翻半页,IDEA 复制当前行;<strong>Ctrl-y</strong> —— vim 上滚一行,IDEA 删除当前行;<strong>Ctrl-f</strong> —— vim 下翻页,VSCode/IDEA 查找;<strong>Ctrl-a</strong> —— vim 数字加一,IDEA 全选;<strong>Ctrl-r</strong> —— vim 重做,IDEA 里常被重构等动作占用。逐个想一遍「这个键我更常用它的哪一面」,然后一次性写进 sethandler / handleKeys —— 半小时的仲裁换来之后每天零弹窗,是配置阶段回报率最高的一笔投资。</p>
+
+        <h2>9. easymotion:屏幕内没有「远处」</h2>
+        <p>第 2、3 章的移动键管「按结构走」(词、行、段落),但「我要去屏幕中间那个 y」这种<strong>纯视觉目标</strong>,结构移动要接好几跳。easymotion 插件把这件事变成两键:按 <code>&lt;leader&gt;f</code>(IDEA 官方示例映射)进入标签模式,输入目标首字母,屏幕上所有候选位置亮起字母标签,按标签直达。VSCodeVim 设 <code>"vim.easymotion": true</code> 后用 <code>&lt;leader&gt;&lt;leader&gt;</code> 前缀 + 目标字母,或按 §2 的映射改到 <code>&lt;leader&gt;f</code>:</p>
+
+        <div class="demo-slot" data-demo="ch12-06-easymotion"></div>
+
+        <p>它的适用边界也要认清:easymotion 管<strong>屏幕内</strong>的瞬移(候选都标在可视区域),跨屏长距离还是 <code>/搜索</code> 或 <code>N%</code>(第 3、8 章)更快。日常组合拳:<strong>近处 easymotion、结构处文本对象/移动键、远处搜索、跨文件 gd/:b</strong> —— 四档射程各司其职,你的手就再也不需要去够鼠标或方向键了。</p>
+
+        <h2>10. 配置核对记录与速查</h2>
+        <p>本章所有配置项已对照官方文档核对(核对日期 2026-09-17,来源见本章 ide-notes 的两栏记录)。速查表:</p>
+        <table class="ktable">
+          <thead><tr><th>想要什么</th><th>VSCode(VSCodeVim)</th><th>IDEA(IdeaVim)</th></tr></thead>
+          <tbody>
+            <tr><td>leader 改空格</td><td><code>"vim.leader": "&lt;space&gt;"</code></td><td><code>let mapleader = " "</code></td></tr>
+            <tr><td>surround 三件套</td><td>默认已开(<code>vim.surround</code>: true)</td><td><code>set surround</code></td></tr>
+            <tr><td>easymotion</td><td><code>"vim.easymotion": true</code></td><td><code>set easymotion</code> + <code>map &lt;leader&gt;f &lt;Plug&gt;(easymotion-s)</code></td></tr>
+            <tr><td>搜索高亮 / 增量</td><td><code>"vim.hlsearch": true</code>(incsearch 默认开)</td><td><code>set hlsearch incsearch</code></td></tr>
+            <tr><td>相对行号</td><td>VSCode 原生 <code>editor.lineNumbers: relative</code></td><td><code>set relativenumber</code></td></tr>
+            <tr><td>自定义映射</td><td><code>vim.normalModeKeyBindingsNonRecursive</code></td><td><code>map</code> / <code>nmap</code> + <code>&lt;Action&gt;(id)</code></td></tr>
+            <tr><td>冲突键仲裁</td><td><code>"vim.handleKeys": { "&lt;C-f&gt;": false }</code></td><td><code>sethandler &lt;C-a&gt; a:ide</code></td></tr>
+            <tr><td>找 IDE 动作 ID</td><td>Keyboard Shortcuts 面板</td><td><code>:actionlist 关键词</code></td></tr>
+          </tbody>
+        </table>
+
+        <h2>11. 每日训练计划(30 分钟 × 2 天)</h2>
+        <table class="ktable">
+          <thead><tr><th>天</th><th>时间盒</th><th>内容</th><th>通过标准</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2">第 1 天</td><td>0–10 分钟</td><td>读 §1–§3,把两份配置抄进真实 IDE,逐项让设置生效并验证</td><td>每项配置都能说出「改了什么」</td></tr>
+            <tr><td>10–30 分钟</td><td>重放演示 1、4;真实代码里练 gd → Ctrl-o 往返 20 次、gb 三连选</td><td>gd/Ctrl-o 不碰鼠标</td></tr>
+            <tr><td rowspan="2">第 2 天</td><td>0–10 分钟</td><td>重放演示 2、3、5;leader 绑两个命令并练熟</td><td>&lt;leader&gt;d 秒触发</td></tr>
+            <tr><td>10–30 分钟</td><td>练习 3 + 练习 4(盲测);surround 三件套各 10 遍</td><td>10 题对 7 题,本章毕业</td></tr>
+          </tbody>
+        </table>
+
+        <h2>12. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>配置是契约,抄了就生效</strong>:两份推荐配置逐项注明来源与默认值 —— surround 在 VSCodeVim 默认开,行号在 VSCode 归编辑器原生,别在插件设置里瞎找;</li>
+          <li><strong>导航五桥 + leader 发射台</strong>:gd/gh/K/Ctrl-o/Ctrl-i 扣 IDE 的扳机,自定义命令统一挂空格 leader —— vim 出发,IDE 导航;</li>
+          <li><strong>冲突仲裁一行解决</strong>:sethandler(IDEA)/ handleKeys(VSCode)判键的归属,原则是「谁的功能强判给谁」,判完写进配置文件。</li>
+        </ol>
+        <p>配置齐了、特色键到位了 —— 下一章是毕业考:12 个真实重构案例,把全书功夫串成组合拳。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:配置落地(10 分钟)</summary>
+          <div class="answer">
+            <p>在你的主力 IDE 里完成:①抄入本章推荐配置(VSCode 改 settings.json / IDEA 建 ~/.ideavimrc);②逐项验证:按空格看状态是否挂起(leader 生效)、ysiw" 加引号(surround 生效)、<code>&lt;leader&gt;f</code>(或 <code>&lt;leader&gt;&lt;leader&gt;</code>)看标签(easymotion 生效);③故意留一个冲突键不改,体会两个主人抢键的感觉,再用 sethandler/handleKeys 仲裁掉。通过线:每一项都能演示给别人看。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:导航桥往返(10 分钟)</summary>
+          <div class="answer">
+            <p>任选项目:①光标放 10 个标识符上,各做 <kbd>g</kbd><kbd>d</kbd> → 看两眼 → <kbd>Ctrl</kbd>+<kbd>o</kbd> 回;②练三次「深潜」:gd 进定义、再 gd 进更深的定义,然后 <kbd>Ctrl</kbd>+<kbd>o</kbd> <kbd>Ctrl</kbd>+<kbd>o</kbd> 两跳回起点,<kbd>Ctrl</kbd>+<kbd>i</kbd> 再进去;③对照原生:同样任务用 Cmd+b / Cmd+- 走一遍,确认两条通道背后是同一份跳转历史。通过线:往返全程不看键盘、不用鼠标。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:surround 与 gb 三连(10 分钟)</summary>
+          <div class="answer">
+            <p>①surround:<code>ysiw"</code> 给词加双引号 → <code>cs"'</code> 换单引号 → <code>ds'</code> 拆掉,10 组;进阶:可视选中三行按 <kbd>S</kbd><code>)</code> 套括号;②gb:造三行含同一变量,gb gb 加两根光标,ciw 一次全改,Esc 收工,5 组;③同任务换 <kbd>*</kbd> + <kbd>n</kbd> + <kbd>.</kbd> 再做一遍,体会两种节奏的差异。通过线:surround 三件套不用回想口诀。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:盲测毕业考(10 分钟)</summary>
+          <div class="answer">
+            <p>10 题先说答案再看:①跳到光标词的定义 ②沿跳转链后退/前进 ③VSCode 里 leader 改空格的设置名 ④IDEA 里 surround 怎么开 ⑤给词加双引号 ⑥双引号换单引号 ⑦拆掉单引号 ⑧添加下一个相同词光标(vim 键)⑨IDEA 里把 Ctrl-a 判给 IDE 的命令 ⑩VSCode 里把 Ctrl-f 还给原生的设置。答案:gd / Ctrl-o、Ctrl-i / "vim.leader" / set surround / ysiw" / cs"' / ds' / gb / sethandler &lt;C-a&gt; a:ide / "vim.handleKeys" 里 "&lt;C-f&gt;": false。10 对 7 毕业。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 凭记忆写配置项,拼错或写了不存在的设置</span>
+          VSCode 对不存在的设置会画波浪线但<strong>不会拦你保存</strong>,IdeaVim 对拼错的 set 只是默默忽略 —— 配置「看起来写了」实际没生效,排查起来最磨人。本章配置已对照官方文档核对(日期见 §10);自己加新项时,先在官方 README/文档里确认设置名与取值,再抄进文件。验证习惯:改一项 → 立刻按一下对应键确认生效,再改下一项。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 改了 .ideavimrc 不重载,以为配置没写对</span>
+          .ideavimrc 是启动时读的文件 —— 改完不生效先别怀疑人生:看 IDEA 通知栏有没有 reload 链接,点了重载(或重启 IDE)再试。VSCode 的 settings.json 则是即改即生效。另一个方向的新手坑:在 IDEA 里找「Vim 设置面板」 —— 核心配置都在文件里,GUI 面板只管冲突键等少数项。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 冲突键仲裁只点弹窗,不写进配置</span>
+          IdeaVim 弹出「这个键给谁」的弹窗时,选了 IDE —— 但插件更新或重置后弹窗会再弹,你的选择可能被冲掉。弹窗只解决当下,配置文件才是一劳永逸:判完立刻把对应的 <code>sethandler</code> 行(或删掉的行)写进 .ideavimrc。VSCode 同理 —— <code>vim.handleKeys</code> 写死,别依赖每次弹的选项。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 多光标选过头,改完才发现选错一处</span>
+          gb 连按时手指比眼睛快,第四处其实是注释里的同名 —— 改完才发现,还得逐处撤销。两个保险:①选人时逐个确认,别无脑连按;②<strong>选完先看一眼所有光标的位置</strong>再动手(IDE 会高亮全部光标);③真选错了 Esc 退出重来,成本只有几秒 —— 多光标是「租」来的,随时可以整单退掉。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异(本章配置核对记录)</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)— 核对来源:官方 README</h4>
+            <ul>
+              <li>已核对项:<code>vim.leader</code>(String,默认 "\\")、<code>vim.easymotion</code>(默认 false)、<code>vim.surround</code>(<strong>默认 true</strong>)、<code>vim.useSystemClipboard</code>(默认 false)、<code>vim.hlsearch</code>(默认 false)、<code>vim.incsearch</code>(默认 true)、<code>vim.handleKeys</code>(示例 <code>"&lt;C-f&gt;": false</code>)、<code>normalModeKeyBindingsNonRecursive</code> 的 <code>&lt;leader&gt;</code> 写法</li>
+              <li>README 明确记载的特色键:<kbd>g</kbd><kbd>d</kbd>(jump to definition)、<kbd>g</kbd><kbd>b</kbd>(等效 Cmd-d 的加光标)</li>
+              <li>明确不存在:行号类 vim 设置 —— 相对行号用 VSCode 原生 <code>editor.lineNumbers: relative</code></li>
+              <li>Windows 注意:Ctrl 系按键默认被接管,按需用 <code>vim.handleKeys</code> 逐个归还;mac 上 Cmd 系(Cmd-c/v/z)插件不拦截,插入模式照常用</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)— 核对来源:官方 README + sethandler wiki</h4>
+            <ul>
+              <li>已核对项:<code>set surround</code>、<code>set easymotion</code>(含官方映射示例 <code>map &lt;leader&gt;f &lt;Plug&gt;(easymotion-s)</code>)、<code>set nu</code>/<code>set relativenumber</code>;配置路径 <code>~/.ideavimrc</code>(另有 XDG 路径与 <code>IDEA_VIM_CUSTOM_VIMRC</code> 变量,可 <code>source ~/.vimrc</code> 复用)</li>
+              <li>已核对命令:<code>sethandler &lt;快捷键&gt; &lt;模式&gt;:ide|vim</code>(官方 wiki,如 <code>sethandler &lt;C-a&gt; a:ide</code>);<code>:action {id}</code> 执行 IDE 动作,映射用 <code>&lt;Action&gt;(id)</code>(官方示例 <code>map gh &lt;Action&gt;(ShowErrorDescription)</code>),动作 ID 用 <code>:actionlist</code> 查</li>
+              <li>注意:<code>&lt;Action&gt;</code> 映射不要配 <code>noremap</code>(官方提醒);多光标原生键是 <kbd>Alt</kbd>+<kbd>J</kbd>,IdeaVim 未拦截,直接用</li>
+              <li>官方文档链接见本章附录说明:VSCodeVim README(github.com/VSCodeVim/Vim)、IdeaVim README(github.com/JetBrains/ideavim)及其 wiki「sethandler」页</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记</h2>
+        <table class="ktable">
+          <thead><tr><th>按键 / 配置</th><th>作用</th><th>按键 / 配置</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>g</kbd><kbd>d</kbd> / <kbd>g</kbd><kbd>h</kbd> / <kbd>K</kbd></td><td>跳定义 / 悬停 / 文档</td><td><kbd>Ctrl</kbd>+<kbd>o</kbd> / <kbd>Ctrl</kbd>+<kbd>i</kbd></td><td>跳转链后退 / 前进</td></tr>
+            <tr><td><code>&lt;leader&gt;</code>(空格)</td><td>自定义命令前缀</td><td><kbd>g</kbd><kbd>b</kbd></td><td>下一个相同词加光标(= Cmd-d)</td></tr>
+            <tr><td><kbd>y</kbd><kbd>s</kbd>iw{壳}</td><td>surround 加壳</td><td><kbd>c</kbd><kbd>s</kbd>{旧}{新} / <kbd>d</kbd><kbd>s</kbd>{壳}</td><td>换壳 / 拆壳</td></tr>
+            <tr><td><code>"vim.leader"</code> / <code>"vim.easymotion"</code></td><td>VSCode 侧配置</td><td><code>set surround</code> / <code>set easymotion</code></td><td>IDEA 侧配置</td></tr>
+            <tr><td><code>sethandler &lt;C-a&gt; a:ide</code></td><td>IDEA 冲突仲裁</td><td><code>"vim.handleKeys": {"&lt;C-f&gt;": false}</code></td><td>VSCode 冲突仲裁</td></tr>
+            <tr><td><code>&lt;Action&gt;(id)</code> / <code>:actionlist</code></td><td>绑 IDE 动作 / 查动作 ID</td><td><code>&lt;leader&gt;f</code> + 标签</td><td>easymotion 屏内瞬移</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:vim 管编辑,IDE 管导航;leader 挂私货,surround 穿衣服,gb 点光标;冲突键 sethandler/handleKeys 一行判归属 —— 配置是契约,抄完要验证。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch11.html">← 第 11 章 · 多文件与窗口</a>
+          <a href="ch13.html">第 13 章 · 实战案例集 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch12.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>

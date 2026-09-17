@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 13 章 · 实战案例集 — Vim 修炼场</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../index.html"><span class="brand-logo">V</span>Vim 修炼场</a>
+    <span class="spacer"></span>
+    <button class="theme-toggle" type="button">🌙 深色</button>
+  </header>
+
+  <main class="wrap">
+    <article class="chapter" id="ch13" data-ch="ch13">
+      <header class="ch-header">
+        <div class="ch-kicker">CHAPTER 13 · 集成与实战 下 · 毕业考</div>
+        <h1>实战案例集:十二个真实重构场景</h1>
+        <div class="ch-meta-line">预计阅读 60 分钟(含拉练约 2 小时)· 前置:第 2–12 章 · 本章演示 12 个</div>
+      </header>
+
+      <section class="goal">
+        <h2>学习目标</h2>
+        <ul>
+          <li>在 <strong>12 个真实重构场景</strong>里把全书功夫串成组合拳:块选、文本对象、查找替换、寄存器、宏、:g 各就各位</li>
+          <li>每个案例练成「<strong>意图 → 按键分解</strong>」的翻译能力:看到任务,十秒内报出按键序列</li>
+          <li>建立<strong>成本意识</strong>:同一个任务的 vim 解法 vs 鼠标/IDE 原生解法,按键数与出错率各差多少,心里有账</li>
+          <li>知道<strong>哪些活应该交给 IDE 原生</strong>(语义重构类)—— 会 vim 不是什么都自己按,是会选工具</li>
+          <li>完成毕业拉练:把 12 个案例当靶场完整打一遍,计时验收</li>
+        </ul>
+      </section>
+
+      <section class="lesson">
+        <h2>1. 怎么读这一章</h2>
+        <p>前十二章是「学兵器」,这一章是「上阵」。每个案例的展开结构固定三段:<strong>任务与鼠标做法</strong>(先承认传统做法的痛点)、<strong>vim 按键分解</strong>(逐键说明,配动画)、<strong>成本对比</strong>(按键数是硬指标,出错率是软指标)。建议的读法:先看任务描述,自己<strong>心里默演一遍按键</strong>,再看分解和动画 —— 对上了,说明这一族工具你已真正消化;对不上,正好回对应章节补课。</p>
+        <p>先亮一下你的兵器谱,后面每个案例都是从中取件组装:</p>
+        <table class="ktable">
+          <thead><tr><th>工具族</th><th>代表按键</th><th>擅长的问题形状</th><th>出自</th></tr></thead>
+          <tbody>
+            <tr><td>移动/射程</td><td><kbd>w</kbd> <kbd>f</kbd> <kbd>gg</kbd> <kbd>*</kbd> <kbd>n</kbd></td><td>「先到战场」—— 一两键抵达目标</td><td>第 2、3、8 章</td></tr>
+            <tr><td>文本对象</td><td><kbd>ciw</kbd> <kbd>ya"</kbd> <kbd>cit</kbd> <kbd>da(</kbd></td><td>结构化指物:词、引号串、标签、括号对</td><td>第 4 章</td></tr>
+            <tr><td>动词与语法</td><td><kbd>d</kbd> <kbd>c</kbd> <kbd>y</kbd> <kbd>p</kbd> <kbd>~</kbd> <kbd>J</kbd></td><td>说什么做什么的编辑语言</td><td>第 5 章</td></tr>
+            <tr><td>可视化/块</td><td><kbd>v</kbd> <kbd>V</kbd> <kbd>Ctrl-v</kbd> <kbd>I</kbd> <kbd>A</kbd></td><td>眼见为实的范围、一切「列」形状</td><td>第 7 章</td></tr>
+            <tr><td>查找替换/:g</td><td><code>:s</code> <code>:%s//g</code> <code>:g//d</code></td><td>按内容批量:一行命令一群行</td><td>第 8 章</td></tr>
+            <tr><td>寄存器</td><td><code>"0p</code> <code>"a</code> <code>"+</code> <kbd>yy</kbd> <kbd>p</kbd></td><td>内容的存取与搬运</td><td>第 9 章</td></tr>
+            <tr><td>重复与宏</td><td><kbd>.</kbd> <kbd>q</kbd><kbd>a</kbd> <kbd>@</kbd><kbd>a</kbd> <kbd>Ctrl-a</kbd></td><td>做一次,重复 N 次</td><td>第 10 章</td></tr>
+            <tr><td>IDE 特色</td><td><kbd>gd</kbd> <kbd>gb</kbd> <kbd>F2</kbd> <kbd>Cmd-d</kbd></td><td>语义导航与多光标</td><td>第 12 章</td></tr>
+          </tbody>
+        </table>
+        <p>一条贯穿全章的提醒:案例里的按键序列不是「标准答案」,是<strong>一种合理组装</strong>。同一个任务,用 <code>:s</code> 还是 <code>gb</code> 还是宏,往往都行 —— 重要的是你能在几秒内挑出<strong>顺手且安全</strong>的那条路。安全优先级永远排在快前面:范围看不准就先选区圈地,语境拿不准就带 <code>c</code> 确认,批量做完先扫一眼再动下一步。</p>
+
+        <h2>2. 案例① 行尾批量加分号(块选 $ A)</h2>
+        <p><strong>任务</strong>:三行语句漏了分号,行长不一。鼠标做法:每行「End 键 → 敲 <code>;</code> → ↓」,三行九次击键外加视线在三行间往返;行数涨到二十行,就是六十次机械重复。<strong>vim 按键分解</strong>:<kbd>Ctrl-v</kbd> 起块 → <kbd>j</kbd><kbd>j</kbd> 圈三行 → <kbd>$</kbd> 把右边界拉到<strong>各自</strong>行尾(块模式特有语义,行长不一无所谓)→ <kbd>A</kbd> 块追加 → <kbd>;</kbd> <kbd>Esc</kbd> 发货。七键,与行数无关地整齐:</p>
+        <div class="demo-slot" data-demo="ch13-01-semicolons"></div>
+        <p><strong>成本账</strong>:7 键对 9+ 键只是起步,真正的差距在<strong>出错模式</strong> —— 鼠标路线每一行都是独立决策,漏一行、多点一格都可能;块路线一次性圈定,眼睛确认一次。同类任务全归它:行尾去逗号(<kbd>$</kbd> 后 <kbd>x</kbd>)、行首统一加前缀(把 <kbd>A</kbd> 换 <kbd>I</kbd>)。IDE 的 Cmd-/ 管不了「加分号」这种自定义批量,这正是块选的独占领地。</p>
+
+        <h2>3. 案例② 局部变量重命名(* + ciw + n .)</h2>
+        <p><strong>任务</strong>:函数内 <code>cnt</code> 改 <code>count</code>,共 3 处。鼠标做法:选中 → 改 → 找下一处 → 选中 → 改…… 或者赌一把全局替换伤到别处。<strong>vim 按键分解</strong>:<kbd>*</kbd> 把光标词设为查找词巡航一圈(顺便确认这 3 处都是同一变量,语境安全)→ <kbd>N</kbd> 回首处 → <kbd>c</kbd><kbd>i</kbd><kbd>w</kbd> <code>count</code> <kbd>Esc</kbd> 完成第一处 → 之后 <kbd>n</kbd><kbd>.</kbd> <kbd>n</kbd><kbd>.</kbd> 一鼓一槌:</p>
+        <div class="demo-slot" data-demo="ch13-02-rename"></div>
+        <p><strong>成本账</strong>:11 键改完,且<strong>每一处都过目</strong> —— n 跳过去的那眼既是确认也是保险。但必须划清边界(第 8 章 §9):这是<strong>文本级</strong>改名,适合局部变量、一次性脚本;真正的公共符号重命名,交给 IDE 的 <kbd>F2</kbd> / <kbd>Shift</kbd>+<kbd>F6</kbd> —— 语义级、跨文件、懂作用域。判断三秒:这个名字出不出这个文件?出,就 F2。</p>
+
+        <h2>4. 案例③ 函数参数删除(f r + daw + x)</h2>
+        <p><strong>任务</strong>:调用处删掉 <code>retry</code> 参数。鼠标做法:数着引号定位 → 小心划选「retry、空格、逗号」三者之一 → 删 → 检查括号。<strong>vim 按键分解</strong>:<kbd>f</kbd><kbd>r</kbd> 两键把光标钉上参数名(<kbd>;</kbd> 还能跳下一个 r)→ <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 吃掉「词 + 旁边空格」(<kbd>a</kbd> 版对象多带一口,第 4 章)→ 光标正好落在暴露的逗号上,<kbd>x</kbd> 收走。六键,括号配对、剩余参数无恙:</p>
+        <div class="demo-slot" data-demo="ch13-03-param-surgery"></div>
+        <p><strong>成本账</strong>:鼠标的痛点在「划选边界」,vim 的解法是让对象语法替你划。同族延伸:参数挪位置 = <kbd>d</kbd><kbd>a</kbd><kbd>w</kbd> 后到目标位 <kbd>p</kbd>(行级思维照搬案例⑪);全清参数 = 光标放括号内 <kbd>d</kbd><kbd>a</kbd><kbd>(</kbd> 一刀。改签名这件事,记得最后让 IDE 的重构菜单同步所有调用点 —— 单点手术 vim 快,全局联动 IDE 稳。</p>
+
+        <h2>5. 案例④ 批量注释 / 取消注释(块选 I 与块删除)</h2>
+        <p><strong>任务</strong>:注释三行,验证完再取消。鼠标做法:拖选三行 → 找编辑器的注释按钮;取消再来一遍 —— 两头都要碰工具栏。<strong>vim 按键分解</strong>:注释 = <kbd>Ctrl-v</kbd> <kbd>j</kbd><kbd>j</kbd> <kbd>I</kbd> <code>// </code> <kbd>Esc</kbd>(块插入,Esc 前只有一行显示,延迟满足);取消 = <kbd>f</kbd><kbd>/</kbd> 钉上注释符 → <kbd>Ctrl-v</kbd> <kbd>j</kbd><kbd>j</kbd> <kbd>2l</kbd> 圈住三列 → <kbd>d</kbd> 整块切掉:</p>
+        <div class="demo-slot" data-demo="ch13-04-comment-toggle"></div>
+        <p><strong>成本账</strong>:注释 7 键、取消 9 键 —— 诚实地说,这个案例 IDE 原生 <kbd>Cmd</kbd>+<kbd>/</kbd> 两键更省(选中即注释,再按即取消)。那为什么还练块选?三个理由:①它<strong>不挑语言</strong>,没有注释快捷键的环境(配置文件、日志、SQL 控制台)照样用;②块删除版能精确控制删几列(只删 <code>//</code> 留空格,或连空格一起);③中间只圈两行 = <strong>选择性注释</strong>,Cmd-/ 只会整段全注。工具熟了,选择权在你。</p>
+
+        <h2>6. 案例⑤ 提取字符串为常量(ya" + gg O + p + ci")</h2>
+        <p><strong>任务</strong>:把魔法字符串 <code>"hello vim"</code> 提成常量。鼠标:复制字符串 → 滚到文件头 → 开新行 → 打定义 → 粘贴 → 滚回来 → 划选替换,六段操作三次滚动。<strong>vim 按键分解</strong>:<kbd>y</kbd><kbd>a</kbd><kbd>"</kbd> 连引号复制 → <kbd>g</kbd><kbd>g</kbd> 回文件头 → <kbd>O</kbd> 上开新行,打 <code>const GREETING = </code> <kbd>Esc</kbd> → <kbd>p</kbd> 把引号串贴进定义(寄存器隔着跳转依然保鲜,第 9 章)→ <kbd>A</kbd> 补分号 → <kbd>j</kbd> 回原行 <kbd>f</kbd><kbd>"</kbd> <kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> 换成 <code>GREETING</code> 引用:</p>
+        <div class="demo-slot" data-demo="ch13-05-extract-const"></div>
+        <p><strong>成本账</strong>:20 键看着多,但每键都有明确职责、零滚动零找位置 —— 鼠标版的真实成本不在击键,在<strong>三次长距离导航</strong>打断思路。这个案例是「组合拳」的标本:ya" 是第 4 章、gg/O 是第 3/6 章、p 是第 9 章、ci" 是第 4 章 —— 没有新知识,只有组装。同族:提取数字常量(ya" 换 <kbd>y</kbd><kbd>i</kbd><kbd>w</kbd>)、提取函数名、上移一段代码(<kbd>d</kbd><kbd>a</kbd><kbd>p</kbd> + <kbd>k</kbd><kbd>P</kbd>)。IDE 的「Introduce Constant」重构一键完成且自动改所有引用 —— 单处提取用它;散落多处的手动提取,vim 组合拳更灵活。</p>
+
+        <h2>7. 案例⑥ 日志语句批量清理(:g/console/d)</h2>
+        <p><strong>任务</strong>:提交前删掉函数里所有 console 行。鼠标:Cmd-f 搜 console → 删一行 → 下一个 → 删…… N 个回合。<strong>vim 按键分解</strong>:一条 <code>:g/console/d</code> 整批消失;<kbd>u</kbd> 一步反悔;精准版 <code>:g/console\.time/d</code> 只清计时打点(点号转义,第 8 章正则):</p>
+        <div class="demo-slot" data-demo="ch13-06-log-clean"></div>
+        <p><strong>成本账</strong>:4 键清 3 行、40 行同样 4 键 —— 批量命令的威力在 N 上指数放大。它的安全感来自两头:执行前可以先用 <code>:g/console</code> 裸跑一遍(只列出匹配行不动手,「先侦查后开火」),执行后 <kbd>u</kbd> 整条回滚。同族存货:删空行 <code>:g/^$/d</code>、删注释行 <code>:g/^\s*\/\//d</code>、删调试块 <code>:g/debug/normal dd</code>(结合第 10 章 :normal)。日志清理的进阶版是让团队用构建开关替代手工删 —— 但那是另一个故事了。</p>
+
+        <h2>8. 案例⑦ CSV 列提取(块选 y + 块粘贴)</h2>
+        <p><strong>任务</strong>:从四行 CSV(首行表头)里把 age 列提出来。鼠标:逐行划选那两三个字符 → 复制 → 粘贴,划选边界全靠眼睛量。<strong>vim 按键分解</strong>:光标放到数据区第一格(避开表头)→ <kbd>Ctrl-v</kbd> <kbd>j</kbd><kbd>j</kbd> 圈三行 → <kbd>2l</kbd> 拉宽到年龄列宽 → <kbd>y</kbd> 块复制 → <kbd>G</kbd> <kbd>o</kbd> <kbd>Esc</kbd> 表格下开行 → <kbd>p</kbd> 矩形粘贴,三行年龄自己站成一列:</p>
+        <div class="demo-slot" data-demo="ch13-07-csv-column"></div>
+        <p><strong>成本账</strong>:9 键提一列,行数增加只改 <kbd>j</kbd> 的次数(或直接 <kbd>3j</kbd>)。块复制的独特价值:<strong>按几何列圈定</strong>,不管内容 —— 这正是多光标(按内容圈)与 <code>:s</code>(按模式圈)都做不好、或做起来很绕的形状。同族:日志剥时间戳前缀(块选 <kbd>d</kbd>)、对齐表格改列、从粘贴的对齐数据里抽字段。列形状,先想块。</p>
+
+        <h2>9. 案例⑧ JSON 键值规范化(:%s 捕获组)</h2>
+        <p><strong>任务</strong>:JS 对象字面量转 JSON,键名要加双引号 —— <code>name:</code> 变 <code>"name":</code>,三处,值不能动。鼠标:逐个划选键名 → 打引号,几次下来眼花。<strong>vim 按键分解</strong>:一条 <code>:%s/\(\w\+\):/"\1":/g</code> —— 括号组 <code>\(\w\+\)</code> 抓住「词+冒号」里的键名,替换段 <code>"\1"</code> 把它原样放回再穿引号:</p>
+        <div class="demo-slot" data-demo="ch13-08-json-keys"></div>
+        <p><strong>成本账</strong>:一条命令,键再多也是它。捕获组是「<strong>保留原文、只改包装</strong>」的通用语法(第 8 章讲过,这里兑现):反向剥引号 <code>:%s/"\(\w\+\)":/\1:/g</code>、给键加大写、日期改格式 <code>:s/\(\d\+\)-\(\d\+\)-\(\d\+\)/\1年\2月\3日/</code>…… 学的不是这一条命令,是「组捕获 + 回放」这个造句法。写完先看输出再 <kbd>u</kbd>,不放心加 <code>c</code> 逐处确认。</p>
+
+        <h2>10. 案例⑨ 批量重命名编号(归零 + Ctrl-a 宏)</h2>
+        <p><strong>任务</strong>:三十行 <code>id:</code> 编号乱了,要重排成 1、2、3…… 鼠标:逐行删号重打,打完还要自查。<strong>vim 按键分解</strong>:两步走 —— ①<strong>归零</strong>:<code>:%s/id: \d\+/id: 0/</code> 全部清成 0;②<strong>生长</strong>:录宏 <kbd>q</kbd><kbd>a</kbd> <kbd>Ctrl-a</kbd> <kbd>j</kbd> <kbd>q</kbd>(当前行 +1、下移),然后 <code>28@a</code> 连发:</p>
+        <div class="demo-slot" data-demo="ch13-09-renumber"></div>
+        <p><strong>成本账</strong>:准备工作一条命令 + 宏四键 + 连发三键,N 行编号总共不到十次击键。「归零再生长」是编号类任务的万能套路(第 10 章 §6):直接在乱序号上逐个改,每个都要看旧值算新值;归零后每行只做同一件事「+1」,才能交给宏连发。同族:批量生成测试数据(案例同款)、步长改 2 就在宏里多按一次 <kbd>Ctrl-a</kbd>、倒序编号用 <kbd>Ctrl-x</kbd>。</p>
+
+        <h2>11. 案例⑩ HTML 标签改写(cit + ci")</h2>
+        <p><strong>任务</strong>:按钮文案改「提交订单」,类名 <code>btn</code> 改 <code>btn-primary</code>。鼠标:在标签里找文字边界划选替换,再眯着眼找 class 引号里那几个字母划选替换。<strong>vim 按键分解</strong>:光标随便在标签里一站 → <kbd>c</kbd><kbd>i</kbd><kbd>t</kbd>(inner tag,改标签内容)打 <code>提交订单</code> <kbd>Esc</kbd> → <kbd>f</kbd><kbd>"</kbd> 钉上 class 引号 → <kbd>c</kbd><kbd>i</kbd><kbd>"</kbd>(改引号内)打 <code>btn-primary</code> <kbd>Esc</kbd>:</p>
+        <div class="demo-slot" data-demo="ch13-10-html-tag"></div>
+        <p><strong>成本账</strong>:12 锋两刀,且<strong>完全不用数引号、找边界</strong> —— it 和 i" 这两个对象把「标签的肉」和「属性的值」做成了名词,你只是在说「改它」。这是文本对象对结构化文本的碾压局:同族还有 <kbd>c</kbd><kbd>i</kbd><kbd>&lt;</kbd>(改标签名)、<kbd>d</kbd><kbd>a</kbd><kbd>t</kbd>(连标签带内容删)、配合 surround 的 <kbd>c</kbd><kbd>s</kbd><kbd>t</kbd>(换标签,第 12 章)。前端同学把这一族练熟,划选标签内容的历史就结束了。</p>
+
+        <h2>12. 案例⑪ 交换赋值语句(dd + p)</h2>
+        <p><strong>任务</strong>:width/height 两行声明顺序反了,交换。<strong>鼠标做法</strong>:拖拽或剪切粘贴 —— 手抖选多半行、粘错位置是常态。<strong>vim 按键分解</strong>:<kbd>d</kbd><kbd>d</kbd> 删上行(行级删除进寄存器,第 9 章)→ <kbd>p</kbd> 粘到下方,三键交换完成:</p>
+        <div class="demo-slot" data-demo="ch13-11-swap-lines"></div>
+        <p><strong>成本账</strong>:3 键,零选择零拖拽 —— 行级「剪切粘贴」因为寄存器的形状语义(整行进、整行出、自动落位)而绝对精准。变体随手记:<kbd>d</kbd><kbd>d</kbd> <kbd>G</kbd> <kbd>p</kbd> 挪到文件尾、<kbd>d</kbd><kbd>d</kbd> <kbd>P</kbd> 粘到上方、<kbd>k</kbd><kbd>d</kbd><kbd>d</kbd> <kbd>p</kbd> 把下面那行提上来;词级交换是 <kbd>x</kbd><kbd>p</kbd>(第 5 章)。「挪」这个高频动作,在 vim 里恒等于三键 —— 这是最先回本的投资之一。</p>
+
+        <h2>13. 案例⑫ 只删函数内空行(V 选区 + :g/^$/d)</h2>
+        <p><strong>任务</strong>:f 函数内部有两个空行要清掉,但函数之间那个分隔空行必须保留 —— <code>:%g/^$/d</code> 会误伤全局。<strong>vim 按键分解</strong>:<kbd>V</kbd> <kbd>j</kbd><kbd>j</kbd><kbd>j</kbd><kbd>j</kbd><kbd>j</kbd> 行选圈住整个函数 → 按 <kbd>:</kbd>(自动带出 <code>'&lt;,'&gt;</code> 前缀,第 8 章)→ 补 <code>g/^$/d</code> 回车 —— 选区当 range,只清圈内的空行:</p>
+        <div class="demo-slot" data-demo="ch13-12-blank-lines"></div>
+        <p><strong>成本账</strong>:10 键,精确到「圈内的空行」。这个案例的含金量在<strong>两个体系的组合</strong>:V 圈地是第 7 章、<code>:g/^$/d</code> 是第 8 章、<code>'&lt;,'&gt;</code> 前缀是两者的接缝 —— 单独都会,接得上才是真会。同族:只在一个函数内做替换 <code>:'&lt;,'&gt;s/old/new/g</code>、只删函数内注释 <code>:'&lt;,'&gt;g/^\s*\/\//d</code>。「先圈地、再施工」永远比「全局开炮再后悔」稳。</p>
+
+        <h2>14. 十二案例的规律:四句话总结</h2>
+        <p>打完十二局,该复盘了。把案例按「用什么圈定范围」重新归类,规律就浮出来 —— <strong>Vim 的编辑难题本质上是「怎么圈」</strong>:圈法决定工具:</p>
+        <table class="ktable">
+          <thead><tr><th>圈法</th><th>工具</th><th>本章案例</th></tr></thead>
+          <tbody>
+            <tr><td>按<strong>结构</strong>圈(词、引号、标签、括号)</td><td>文本对象</td><td>② 改名、③ 参数、⑤ 提取、⑩ 标签</td></tr>
+            <tr><td>按<strong>几何</strong>圈(列、矩形)</td><td>块选 Ctrl-v</td><td>① 分号、④ 注释、⑦ 提列</td></tr>
+            <tr><td>按<strong>内容</strong>圈(模式、匹配行)</td><td>:s / :g</td><td>⑥ 清日志、⑧ 规范化、⑫ 空行</td></tr>
+            <tr><td>按<strong>重复</strong>圈(做一次,来 N 次)</td><td>. / 宏 / Ctrl-a</td><td>② 鼓点、⑨ 编号(①④是块,也可宏)</td></tr>
+          </tbody>
+        </table>
+        <p>四句话带走:①<strong>结构能说清就不动手选</strong>(对象优先);②<strong>列形状交给块</strong>,别的工具都绕;③<strong>内容批量交给 :s/:g</strong>,先侦查后开火;④<strong>凡是重复,想 . 和宏</strong>。再加上那条安全边界 —— 语义级重构(F2 重命名、Introduce Constant)永远让 IDE 来 —— 你的工具选择器就完整了。</p>
+
+        <h2>15. 毕业拉练计划(周末 2 小时)</h2>
+        <table class="ktable">
+          <thead><tr><th>阶段</th><th>时间</th><th>内容</th><th>验收</th></tr></thead>
+          <tbody>
+            <tr><td>上半场</td><td>30 分钟</td><td>案例①–⑥:每个案例在自己项目里找真实目标做一遍,对照动画核对按键</td><td>每案例一次成功不返工</td></tr>
+            <tr><td>下半场</td><td>30 分钟</td><td>案例⑦–⑫ 同上;⑨ 的归零命令和 ⑫ 的选区前缀容易卡,慢就是快</td><td>同上</td></tr>
+            <tr><td>计时赛</td><td>20 分钟</td><td>任选 6 个案例,每案例在自己造的靶场重打一遍并计时</td><td>单案例 ≤30 秒</td></tr>
+            <tr><td>盲测</td><td>40 分钟</td><td>练习 4 的 12 题盲测 + 错题对应章节回炉</td><td>12 题对 9 题,全站毕业 🎓</td></tr>
+          </tbody>
+        </table>
+
+        <h2>16. 如果本章只记住三件事</h2>
+        <ol>
+          <li><strong>编辑难题 = 圈定范围</strong>:结构圈用对象、几何圈用块、内容圈用 :s/:g、重复圈用 . 和宏 —— 四种圈法定半生;</li>
+          <li><strong>安全永远排在快前面</strong>:先 * 巡航再动手、选区圈地好过全局开炮、批量完 u 一步回滚、拿不准就带 c 确认;</li>
+          <li><strong>会选工具比会按键盘重要</strong>:语义重构交给 IDE,文本批量留给自己 —— vim 的终点不是替代 IDE,是长在 IDE 里。</li>
+        </ol>
+        <p>课程正文到此收官。接下来是附录:可打印的速查手册与常见问题 FAQ —— 日常干活时,它们比教程更常被翻开。</p>
+      </section>
+
+      <section class="drills">
+        <h2>练习</h2>
+        <details>
+          <summary>练习 1:案例复刻(20 分钟)</summary>
+          <div class="answer">
+            <p>挑 6 个案例(建议①②③⑥⑨⑫),每个在自己的真实代码里找一次对应场景照做。找不到就造靶:比如案例⑥在临时文件里粘 10 行 console。要求:每案例<strong>先默写按键序列再动手</strong>,与本章分解逐键核对。通过线:6 个案例全部一次成功,重做第二个案例时不用翻书。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 2:一题多解(15 分钟)</summary>
+          <div class="answer">
+            <p>用「10 行行尾加分号」这个任务走四条路:①块选 <kbd>$</kbd><kbd>A</kbd>(案例①);②<kbd>A</kbd><kbd>;</kbd><kbd>Esc</kbd> + <kbd>j</kbd><kbd>.</kbd>×9(第 10 章);③录宏 <kbd>q</kbd><kbd>a</kbd><kbd>A</kbd><kbd>;</kbd><kbd>Esc</kbd><kbd>j</kbd><kbd>q</kbd> + <code>9@a</code>;④<code>:%normal A;</code>(第 10 章 §7)。每条路计时并记录手感。通过线:能说出四条路各自的适用边界(行长不一时谁占优?要跳过两行时谁最灵活?)。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 3:组合变式(15 分钟)</summary>
+          <div class="answer">
+            <p>三个升级变式:①「案例⑫ + 案例⑧」:选区内把 foo 全改 bar(<code>:'&lt;,'&gt;s/foo/bar/g</code>);②「案例⑤ + 案例②」:提取常量后,用 <kbd>*</kbd> + <kbd>n</kbd><kbd>.</kbd> 把其余出现处也换成常量;③「案例④ + 案例⑥」:<code>:g/console/normal I// </code> 用 :g + :normal 给所有日志行加注释(不删只注释,提交前可逆)。通过线:变式按键序列自己能推出来 —— 拼装能力才是毕业证。</p>
+          </div>
+        </details>
+        <details>
+          <summary>练习 4:毕业盲测(12 题)</summary>
+          <div class="answer">
+            <p>先说按键序列再看答案:①20 行行尾加分号 ②局部变量 3 处改名 ③删一个参数 ④注释 5 行 ⑤提取字符串常量 ⑥删所有 console 行 ⑦CSV 抽一列 ⑧键名加引号 ⑨30 行编号重排 ⑩改标签文案 ⑪交换两行 ⑫删函数内空行。参考:①C-v 19j $ A ; Esc ②* N ciw n . n .(或 :%s//gc)③f 名 daw x(或 da( 全清)④C-v I // Esc(或 Cmd-/)⑤ya" gg O 打字 Esc p A ; Esc 回原处 ci" ⑥:g/console/d ⑦C-v 圈列 y G o Esc p ⑧:%s/\(\w\+\):/"\1":/g ⑨归零 :%s + qa Ctrl-a j q + 28@a ⑩cit / ci" ⑪dd p ⑫V 圈 + :'<,'>g/^$/d。12 对 9 题,全站毕业 🎓</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="pitfalls">
+        <h2>常见陷阱</h2>
+        <div class="callout warn">
+          <span class="co-title">🕳 照抄按键不看语境,把教程用成模板</span>
+          本章的按键序列绑定在演示的<strong>具体光标位置和代码形状</strong>上:案例③的 <kbd>f</kbd><kbd>r</kbd> 只在 retry 是本行第一个 r 时成立,案例②的 <kbd>n</kbd><kbd>.</kbd> 鼓点在出现点密集时才划算。学的是「圈法 + 组装」,不是字面序列 —— 换个文件就照抄,迟早翻车。动手前问一句:我的光标在哪?目标是什么形状?
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 追求一次到位,不给自己留后悔药</span>
+          看完案例容易手痒直接放大招:<code>:%s</code> 全文开炮、<code>28@a</code> 直接连发 —— 错一步就是 28 处错改。流程纪律:批量前先<strong>侦查</strong>(<code>:g/pat</code> 裸跑、<kbd>*</kbd> 巡航)、批量时<strong>留确认</strong>(c 标志、选区圈地)、批量后<strong>扫一眼再动</strong>(u 永远在)。快是结果,稳是前提。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 该交 IDE 的活硬用 vim 文本技巧</span>
+          案例②⑤的边界一定要守住:跨文件的公共符号重命名、带作用域分析的提取变量/内联,是 IDE 语义重构的主场 —— <code>:%s</code> 改公共 API 名会漏掉字符串里的引用、误伤同名局部变量。判断口诀:<strong>「名字出不出这个文件」</strong> —— 出,就 F2/Shift+F6;不出,才轮到文本三件套。
+        </div>
+        <div class="callout warn">
+          <span class="co-title">🕳 块选前忘了检查行齐不齐</span>
+          案例①的 <kbd>$</kbd> 和案例⑦的固定列宽是两种对齐假设:前者「各行行长不同、都要到尾」,后者「各行该列起始位置相同」。CSV 有个别行多了一列、日志有时间戳长度不一,块就会圈歪 —— 动手前眼睛扫一遍目标列是否对齐,歪的行先修齐(或用 <code>:s</code> 按内容圈更稳)。
+        </div>
+      </section>
+
+      <section class="ide-notes">
+        <h2>VSCode / IDEA 差异</h2>
+        <div class="ide-grid">
+          <div class="ide-col">
+            <h4>VSCode(VSCodeVim)</h4>
+            <ul>
+              <li>案例②的语义版:<kbd>F2</kbd> 重命名(跨文件);案例⑤的语义版:右键 → Refactor → Introduce Constant —— 语义场景优先这两个</li>
+              <li>案例④:<kbd>Cmd</kbd>+<kbd>/</kbd> 切换行注释两键搞定,块选版留作无快捷键环境与选择性注释</li>
+              <li>案例②/⑩的多光标变式:<kbd>g</kbd><kbd>b</kbd> 或 <kbd>Cmd</kbd>+<kbd>d</kbd> 逐个点名后一次改(第 12 章);案例⑦的列形状也可用 <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> 加列光标</li>
+              <li>案例⑥的 IDE 版:Cmd-Shift-f 全局搜 console 后逐个处理 —— 但删行批量仍是 <code>:g/d</code> 最快,两边配合用</li>
+            </ul>
+          </div>
+          <div class="ide-col">
+            <h4>IntelliJ IDEA(IdeaVim)</h4>
+            <ul>
+              <li>案例②⑤的语义版:<kbd>Shift</kbd>+<kbd>F6</kbd> 重命名、Refactor → Introduce Field/Constant;案例③改签名用 <kbd>Cmd</kbd>+<kbd>F6</kbd>(Change Signature)自动同步所有调用点</li>
+              <li>案例④:IDEA 注释快捷键 <kbd>Cmd</kbd>+<kbd>/</kbd>(行)/ <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>/</kbd>(块);块选版价值同左列</li>
+              <li>多光标 <kbd>Alt</kbd>+<kbd>J</kbd>(或第 12 章的 sethandler 配置);代码格式化 <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd> 可收编进 <code>&lt;Action&gt;</code> 映射挂 leader</li>
+              <li>调试场景彩蛋:案例⑥的 console 清理,IdeaVim 里 <code>:g/console/d</code> 照用 —— :g 在 IDEA 的编辑器上同样整批生效</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="recap">
+        <h2>本章速记(十二案例一表收)</h2>
+        <table class="ktable">
+          <thead><tr><th>案例</th><th>核心按键</th><th>圈法</th><th>案例</th><th>核心按键</th><th>圈法</th></tr></thead>
+          <tbody>
+            <tr><td>① 补分号</td><td><kbd>Ctrl-v</kbd> <kbd>$</kbd> <kbd>A</kbd></td><td>几何列</td><td>⑦ 抽 CSV 列</td><td><kbd>Ctrl-v</kbd> <kbd>y</kbd> <kbd>p</kbd></td><td>几何列</td></tr>
+            <tr><td>② 改名</td><td><kbd>*</kbd> <kbd>n</kbd> <kbd>.</kbd></td><td>内容+重复</td><td>⑧ 键规范化</td><td><code>:%s/\(\w\+\):/"\1":/g</code></td><td>内容</td></tr>
+            <tr><td>③ 删参数</td><td><kbd>f</kbd>名 <kbd>daw</kbd> <kbd>x</kbd></td><td>结构</td><td>⑨ 编号重排</td><td>归零 + <kbd>Ctrl-a</kbd> 宏</td><td>重复</td></tr>
+            <tr><td>④ 注释</td><td><kbd>Ctrl-v</kbd> <kbd>I</kbd>(+<kbd>Cmd</kbd>+<kbd>/</kbd>)</td><td>几何列</td><td>⑩ 标签改写</td><td><kbd>cit</kbd> <kbd>ci"</kbd></td><td>结构</td></tr>
+            <tr><td>⑤ 提常量</td><td><kbd>ya"</kbd> <kbd>gg</kbd><kbd>O</kbd> <kbd>p</kbd></td><td>结构+寄存器</td><td>⑪ 交换两行</td><td><kbd>dd</kbd> <kbd>p</kbd></td><td>行级</td></tr>
+            <tr><td>⑥ 清日志</td><td><code>:g/console/d</code></td><td>内容</td><td>⑫ 函数内空行</td><td><code>:'&lt;,'&gt;g/^$/d</code></td><td>内容+选区</td></tr>
+          </tbody>
+        </table>
+        <p><strong>一句话心法:结构圈用对象,几何圈用块,内容圈用 :s/:g,重复圈用 . 和宏;先侦查后开火,语义重构交 IDE。</strong></p>
+      </section>
+
+      <footer class="ch-footer">
+        <button class="read-toggle" type="button">标记本章已读</button>
+        <div class="pager">
+          <a href="ch12.html">← 第 12 章 · IDE 集成</a>
+          <a href="../cheatsheet.html">附录 A · 快速参考手册 →</a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <script src="../demos/ch13.js"></script>
+  <script src="../assets/js/nav.js"></script>
+  <script src="../assets/js/vim-player.js"></script>
+  <script src="../assets/js/progress.js"></script>
+</body>
+</html>
